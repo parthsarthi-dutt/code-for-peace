@@ -144,8 +144,8 @@ func ExecuteBinary(path string){
 }
 func main(){
 
-path:="problems/124-A"
+	// path:="problems/124-A"
 	// ReadCodeFile(path)
-	flag:=RunFile(path)
-	if(flag){ExecuteBinary(path)}
+	// flag:=RunFile(path)
+	// if(flag){ExecuteBinary(path)}
 }
