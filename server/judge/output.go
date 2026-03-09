@@ -191,10 +191,3 @@ func ExecuteBinary(ProblemPath string,BinaryPath string,timeLimit int64,memoryLi
 	return result,nil
 	
 }
-func main(){
-
-	// path:="problems/124-A"
-	// ReadCodeFile(path)
-	// flag:=RunFile(path)
-	// if(flag){ExecuteBinary(path)}
-}
