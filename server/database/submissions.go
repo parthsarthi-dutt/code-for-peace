@@ -2,6 +2,7 @@ package database
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"time"
 
@@ -10,17 +11,16 @@ import (
 )
 var submissionsDB = make(map[string][]byte)
 
-func UserSubmission(submissionID string,problemID string,code string,userID string,language string,timeLimit int64,memoryLimit int64,priority string){
+func UserSubmission(submissionID string,problemID string,code string,userID string,language string,priority string){
 	log.Println("Submission Recorded")
 	currentTime:=time.Now()
 	timeStamp := currentTime.Format("2006-01-02 15:04:05")
 	submission:=models.Submission{
+		SubmissionID:submissionID,
 		ProblemID:problemID,
 		UserID:userID,
 		Language:language,
 		Code:code,
-		TimeLimit:timeLimit,
-		MemoryLimit:memoryLimit,
 		CreatedAt: timeStamp,
 		Verdict: "pending",
 		ExecutionTime:0,
@@ -73,9 +73,32 @@ func Result(submissionID string,verdict string,executionTime int64,memoryUsed in
 	submission.ExecutionTime=executionTime
 	submission.MemoryUsed=memoryUsed
 	submission.Message=message
+		// Convert back to JSON
+	updatedData, err := json.Marshal(submission)
+	if err != nil {
+		panic(err)
+	}
+
+	// Store back in map
+	submissionsDB[submissionID] = updatedData
 	log.Println(submission.Verdict)
 	log.Println(submission.ExecutionTime)
 	log.Println(submission.MemoryUsed)
 	log.Println(submission.Message)
 }
-	
+func GetSubmission(submissionID string) (models.Submission, error){
+
+data, exists := submissionsDB[submissionID]
+	if !exists {
+		return models.Submission{}, fmt.Errorf("submission not found")
+	}
+
+	var submission models.Submission
+
+	err := json.Unmarshal(data, &submission)
+	if err != nil {
+		return models.Submission{}, err
+	}
+
+	return submission, nil
+}

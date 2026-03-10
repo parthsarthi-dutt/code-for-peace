@@ -335,6 +335,7 @@ void solve(ll n)
 
     // pr(k);
     vector<vector<ll>> dp(n+1, vector<ll>(min(k + 1, 12 * n + 1)+2, -1));
+    // while(1);
     cout << dprec(0, 0, dp, k, v2, v3) << "\n";
     // pr(fac[7]);
     // vector<pair<pair<double, ll>, ll>> v5;

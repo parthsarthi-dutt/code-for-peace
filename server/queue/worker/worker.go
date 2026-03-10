@@ -34,24 +34,31 @@ func StartWorker(rdb *redis.Client) {
 		json.Unmarshal([]byte(jobData),&job)
 				sem <- struct{}{} 
 		go func(j models.JudgeResult) {
+    defer func() { <-sem }()
 
-			defer func() { <-sem }()
+    log.Println("Processing submission:", j.SubmissionID)
+    info := database.GetInfo(j.SubmissionID)
+    constraints := database.GetTimeAndMemory(info[0])
 
-			log.Println("Processing submission:", j.SubmissionID)
+    // GUARANTEE CLEANUP: This will always run when the goroutine finishes!
+    defer judge.DeleteFile(submissionPath, j.SubmissionID)
 
-			info := database.GetInfo(j.SubmissionID)
-			constraints:=database.GetTimeAndMemory(info[0])
-			judge.CreateAndWriteFile(info[1], submissionPath, j.SubmissionID)
-
-			judge.RunFile(submissionPath + j.SubmissionID)
-
-			output, err := judge.ExecuteBinary(
+    // Make sure we start fresh, just in case
+    judge.DeleteFile(submissionPath, j.SubmissionID)
+    judge.CreateAndWriteFile(info[1], submissionPath, j.SubmissionID)
+    
+    submissionDir := submissionPath + j.SubmissionID
+          
+    
+    ok:=judge.RunFile(submissionDir)
+	if ok{
+					output, err := judge.ExecuteBinary(
 				problemPath+info[0],
-				submissionPath+j.SubmissionID,
+				submissionDir,
 				constraints[0],
 				constraints[1],
 			)
-			judge.DeleteFile(submissionPath,j.SubmissionID)
+			// judge.DeleteFile(submissionPath,j.SubmissionID)
 			if err != nil {
 				log.Println(err)
 				return
@@ -67,6 +74,11 @@ func StartWorker(rdb *redis.Client) {
 
 			log.Println("Result Updated")
 			log.Println()
+	}
+    // if !flag { 
+    //     return // DeleteFile will still trigger automatically because of defer!
+    // }
+
 
 		}(job)
 

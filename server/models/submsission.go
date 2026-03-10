@@ -2,6 +2,7 @@ package models
 
 
 type Submission struct {
+	SubmissionID    string    `json:"submission_id"`
 	ProblemID    string    `json:"problem_id"`
 	UserID       string    `json:"user_id"`
 	Language     string    `json:"language"`
