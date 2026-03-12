@@ -1,103 +1,108 @@
 package database
 
 import (
-	"encoding/json"
-	"fmt"
 	"log"
 	"time"
 
 	"github.com/parthsarthi-dutt/online-judge/server/models"
 	"github.com/parthsarthi-dutt/online-judge/server/queue/producer"
+	"github.com/parthsarthi-dutt/online-judge/server/repository"
 )
-var submissionsDB = make(map[string][]byte)
 
-func UserSubmission(submissionID string,problemID string,code string,userID string,language string,priority string){
+
+func UserSubmission(
+	submissionID string,
+	problemID string,
+	code string,
+	userID string,
+	language string,
+	priority string,
+) {
+
 	log.Println("Submission Recorded")
-	currentTime:=time.Now()
-	timeStamp := currentTime.Format("2006-01-02 15:04:05")
-	submission:=models.Submission{
-		SubmissionID:submissionID,
-		ProblemID:problemID,
-		UserID:userID,
-		Language:language,
-		Code:code,
-		CreatedAt: timeStamp,
-		Verdict: "pending",
-		ExecutionTime:0,
-		MemoryUsed:0,
-		Message: "NA",
-		Priority: priority,
-	}
-	log.Println(submission.UserID)
-	log.Println(submission.CreatedAt)
-	data,err:=json.Marshal(submission)
-	if(err!=nil){
-		panic(err)
-	}
-	submissionsDB[submissionID]=data
-	log.Println("Submission Pushed to Queue")
 
+	// currentTime := time.Now()
+	// timeStamp := currentTime.Format("2006-01-02 15:04:05")
+	submission := models.Submission{
+		SubmissionID: submissionID,
+		ProblemID:    problemID,
+		UserID:       userID,
+		Language:     language,
+		Code:         code,
+		CreatedAt:    time.Now(),
+		Verdict:      "pending",
+		ExecutionTime: 0,
+		MemoryUsed:    0,
+		Message:       "NA",
+		Priority:      priority,
+	}
 
-	producer.PushSubmission(RDB,submissionID,priority)
-	
+	err := repository.CreateSubmission(submission)
+	if err != nil {
+		log.Println("DB insert error:", err)
+		return
+	}
+
+	log.Println("Submission stored in DB")
+
+	producer.PushSubmission(RDB, submissionID, priority)
+
+	log.Println("Submission pushed to queue")
 }
+
+
 func GetInfo(submissionID string) []string {
 
-	data, exists := submissionsDB[submissionID]
-	if !exists {
+	data, err := repository.GetSubmission(submissionID)
+	if err!=nil {
 		panic("submission not found")
 	}
 
-	var submission models.Submission
 	ans:=make([]string,2)
-	err := json.Unmarshal(data, &submission)
-	if err != nil {
-		panic(err)
-	}
-	ans[0]=submission.ProblemID
-	ans[1]=submission.Code
+
+	ans[0]=data.ProblemID
+	ans[1]=data.Code
 	log.Println("Submission Info Returned")
 	return ans
 }
-func Result(submissionID string,verdict string,executionTime int64,memoryUsed int64,message string){
-	data, exists := submissionsDB[submissionID]
-	if !exists {
-		panic("submission not found")
-	}
-	var submission models.Submission
-	err := json.Unmarshal(data, &submission)
-		if err != nil {
-		panic(err)
-	}
-	submission.Verdict=verdict
-	submission.ExecutionTime=executionTime
-	submission.MemoryUsed=memoryUsed
-	submission.Message=message
-		// Convert back to JSON
-	updatedData, err := json.Marshal(submission)
+
+func Result(
+	submissionID string,
+	verdict string,
+	executionTime int64,
+	memoryUsed int64,
+	message string,
+) {
+
+	err := repository.UpdateSubmissionResult(
+		submissionID,
+		verdict,
+		executionTime,
+		memoryUsed,
+		message,
+	)
+
 	if err != nil {
-		panic(err)
+		log.Println("DB update error:", err)
+		return
 	}
 
-	// Store back in map
-	submissionsDB[submissionID] = updatedData
-	log.Println(submission.Verdict)
-	log.Println(submission.ExecutionTime)
-	log.Println(submission.MemoryUsed)
-	log.Println(submission.Message)
+	log.Println("Submission result updated")
 }
 func GetSubmission(submissionID string) (models.Submission, error){
 
-data, exists := submissionsDB[submissionID]
-	if !exists {
-		return models.Submission{}, fmt.Errorf("submission not found")
+	submission, err := repository.GetSubmission(submissionID)
+	if err!=nil {
+		panic("submission not found")
 	}
 
-	var submission models.Submission
+	return submission, nil
+}
+func GetAllSubmissions(userID string) ([]models.Submission, error){
 
-	err := json.Unmarshal(data, &submission)
-	if err != nil {
-		return models.Submission{}, err
+	submission, err := repository.GetAllSubmissions(userID)
+	if err!=nil {
+		panic("submission not found")
 	}
 
 	return submission, nil

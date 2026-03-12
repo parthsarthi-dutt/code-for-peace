@@ -5,7 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
+	
 )
 
 func CreateAndWriteFile(code string, basePath string, submissionID string) {
@@ -70,16 +70,3 @@ func ReadExpecFile(path string, test string) string {
     return string(file)
 }
 
-func listTestNames(problemPath string) ([]string, error) {
-    entries, err := os.ReadDir(problemPath + "/input")
-    if err != nil {
-        return nil, err
-    }
-    var names []string
-    for _, e := range entries {
-        if !e.IsDir() {
-            names = append(names, strings.TrimSuffix(e.Name(), ".txt"))
-        }
-    }
-    return names, nil
-}
