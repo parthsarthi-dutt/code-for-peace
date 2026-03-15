@@ -1,4 +1,4 @@
-# Online Judge System
+# CodeForPeace - Distributed Code Evaluation System
 
 ## Overview
 
