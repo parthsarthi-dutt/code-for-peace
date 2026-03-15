@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/parthsarthi-dutt/online-judge/api"
+	"github.com/parthsarthi-dutt/online-judge/server/auth"
 	"github.com/parthsarthi-dutt/online-judge/server/database"
 	"github.com/parthsarthi-dutt/online-judge/server/database/postgres"
 	"github.com/parthsarthi-dutt/online-judge/server/queue/worker"
@@ -16,12 +17,16 @@ func main(){
 	database.ConnectRedis()
 	log.Println("Connected to Redis Database")
 	api.ProblemEndpoint()
-
+	auth.InitGoogleOAuth()
 	go worker.StartWorker(database.RDB)
-	http.HandleFunc("/practice/submit", api.SubmissionEndpointPractice)
-	http.HandleFunc("/contest/submit", api.SubmissionEndpointContest)
-	http.HandleFunc("/submission", api.GetSubmissionsEndpoint)
-	http.HandleFunc("/user/submissions", api.GetAllSubmissionsEndpoint)
+	http.HandleFunc("/auth/google/login", auth.GoogleLogin)
+	http.HandleFunc("/auth/google/callback", auth.GoogleCallback)
+	http.Handle("/practice/submit",auth.AuthMiddleware(http.HandlerFunc(api.SubmissionEndpointPractice))) 
+	http.Handle("/contest/submit",auth.AuthMiddleware(http.HandlerFunc( api.SubmissionEndpointContest))) 
+	http.Handle("/submission", auth.AuthMiddleware(http.HandlerFunc(api.GetSubmissionsEndpoint)))
+	http.Handle("/user/submissions", auth.AuthMiddleware(http.HandlerFunc(api.GetAllSubmissionsEndpoint)))
+
+
 
 	log.Println("Server running on :8080")
 

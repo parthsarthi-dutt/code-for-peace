@@ -5,36 +5,39 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/parthsarthi-dutt/online-judge/server/auth"
 	"github.com/parthsarthi-dutt/online-judge/server/database"
 	"github.com/parthsarthi-dutt/online-judge/server/models"
 )
 
 func SubmissionEndpointContest(w http.ResponseWriter, r *http.Request) {
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	err := r.ParseMultipartForm(10 << 20) // 10 MB
+	err := r.ParseMultipartForm(10 << 20)
 	if err != nil {
 		http.Error(w, "Unable to parse form", http.StatusBadRequest)
 		return
 	}
 
+	// extract user from JWT context
+	userID := r.Context().Value(auth.UsernameKey).(string)
+
 	submissionID := r.FormValue("submission_id")
 	problemID := r.FormValue("problem_id")
-	userID := r.FormValue("user_id")
 	language := r.FormValue("language")
 	code := r.FormValue("code")
 
-	// Debug print (very useful right now)
 	fmt.Println("submissionID:", submissionID)
 	fmt.Println("problemID:", problemID)
 	fmt.Println("userID:", userID)
 	fmt.Println("language:", language)
 	fmt.Println("code length:", len(code))
 
-	if submissionID == "" || problemID == "" || userID == "" || language == "" || code == "" {
+	if submissionID == "" || problemID == "" || language == "" || code == "" {
 		http.Error(w, "Missing required fields", http.StatusBadRequest)
 		return
 	}
