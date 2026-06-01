@@ -687,7 +687,13 @@ export default function InterviewPage() {
           </button>
           
           <button
-            onClick={() => navigate('/')}
+            onClick={() => {
+              setInterviewStatus('setup');
+              setChatHistory([]);
+              setFeedback('');
+              setLevel('');
+              setDuration(0);
+            }}
             style={{
               padding: '14px',
               border: '1px solid var(--border-default)',
@@ -708,7 +714,7 @@ export default function InterviewPage() {
               e.currentTarget.style.borderColor = 'var(--border-default)';
             }}
           >
-            Back to Home
+            Back to AI Interviews
           </button>
         </div>
       </div>
