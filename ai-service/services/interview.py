@@ -4,7 +4,7 @@ from __future__ import annotations
 AI Interview Service
 - Uses Gemini/Groq LLM for question generation & evaluation
 - Uses Groq Whisper for Speech-to-Text
-- Uses Piper TTS (Docker container on port 5002) for Text-to-Speech
+- Uses gTTS for Text-to-Speech
 """
 
 import os
@@ -19,79 +19,340 @@ load_dotenv()
 import io
 from gtts import gTTS
 
-# Use gTTS for reliable Text-to-Speech without an external container
-
 # ─── Topic pools per difficulty ─────────────────────
+# Easy  → TCS / Infosys / Wipro / Accenture / entry-level product companies
+# Medium → Amazon / Microsoft / Flipkart / Adobe / Atlassian / Uber (early rounds)
+# Hard  → Google / Meta / Rubrik / Snowflake / Stripe / Jane Street / competitive-level
+
 TOPIC_POOLS = {
     "easy": [
-        "Arrays and basic operations",
-        "String manipulation",
-        "Basic sorting algorithms",
-        "Hash maps and frequency counting",
-        "Two pointers technique",
-        "Basic recursion",
-        "Stack and Queue operations",
-        "Linear search and Binary search",
-        "Time and Space complexity analysis",
-        "Linked list basics",
+        # Core DS / Algo fundamentals tested at TCS, Infosys, Wipro, Cognizant
+        {
+            "topic": "Arrays and basic operations",
+            "example_questions": [
+                "Find the second largest element in an unsorted array.",
+                "Rotate an array to the right by k steps.",
+                "Check if an array is a palindrome.",
+            ],
+            "companies": ["TCS", "Infosys", "Wipro"],
+        },
+        {
+            "topic": "String manipulation",
+            "example_questions": [
+                "Reverse words in a sentence without reversing each word.",
+                "Check if two strings are anagrams.",
+                "Find the first non-repeating character in a string.",
+            ],
+            "companies": ["Accenture", "Cognizant", "Capgemini"],
+        },
+        {
+            "topic": "Hash maps and frequency counting",
+            "example_questions": [
+                "Find all elements that appear more than n/3 times.",
+                "Group words that are anagrams of each other.",
+                "Two-sum problem using a hash map.",
+            ],
+            "companies": ["TCS Digital", "Hexaware", "Mphasis"],
+        },
+        {
+            "topic": "Basic sorting algorithms",
+            "example_questions": [
+                "Sort an array of 0s, 1s, and 2s without using extra space.",
+                "Find the kth largest element using partial sort.",
+            ],
+            "companies": ["TCS", "Infosys", "Wipro"],
+        },
+        {
+            "topic": "Two pointers technique",
+            "example_questions": [
+                "Find a pair in a sorted array that sums to a target.",
+                "Remove duplicates from a sorted array in-place.",
+                "Move all zeroes to the end of the array.",
+            ],
+            "companies": ["Zoho", "Freshworks", "EPAM"],
+        },
+        {
+            "topic": "Basic recursion and mathematical problems",
+            "example_questions": [
+                "Compute power(x, n) using fast exponentiation.",
+                "Find GCD of two numbers using Euclid's algorithm.",
+                "Check if a number is prime with optimal complexity.",
+            ],
+            "companies": ["TCS", "Infosys", "Persistent"],
+        },
+        {
+            "topic": "Stack and Queue operations",
+            "example_questions": [
+                "Check if a string of brackets is balanced.",
+                "Implement a queue using two stacks.",
+                "Design a stack that supports getMin in O(1).",
+            ],
+            "companies": ["Accenture", "L&T Infotech", "Mindtree"],
+        },
+        {
+            "topic": "Binary search fundamentals",
+            "example_questions": [
+                "Find the first and last position of a target in a sorted array.",
+                "Search in a rotated sorted array.",
+            ],
+            "companies": ["TCS Digital", "Zoho", "Freshworks"],
+        },
+        {
+            "topic": "Linked list basics",
+            "example_questions": [
+                "Detect a cycle in a linked list.",
+                "Reverse a linked list both iteratively and recursively.",
+                "Find the middle element of a linked list in one pass.",
+            ],
+            "companies": ["Wipro Elite", "HCL", "Tech Mahindra"],
+        },
+        {
+            "topic": "Time and space complexity analysis",
+            "example_questions": [
+                "Analyze the complexity of bubble sort vs merge sort.",
+                "Why is hash map lookup O(1) amortized but not worst-case?",
+            ],
+            "companies": ["All entry-level companies"],
+        },
     ],
+
     "medium": [
-        "Binary Search on answer",
-        "Sliding window technique",
-        "Backtracking and pruning",
-        "Graph BFS and DFS",
-        "Dynamic Programming (1D)",
-        "Greedy algorithms",
-        "Tree traversals and properties",
-        "Prefix sums and difference arrays",
-        "Topological sorting",
-        "Union-Find / Disjoint Set Union",
+        # Patterns tested at Amazon, Microsoft, Adobe, Flipkart, Atlassian, Swiggy
+        {
+            "topic": "Sliding window technique",
+            "example_questions": [
+                "Longest substring without repeating characters.",
+                "Find the minimum window substring containing all characters of pattern.",
+                "Maximum sum subarray of size k.",
+            ],
+            "companies": ["Amazon", "Microsoft", "Adobe"],
+        },
+        {
+            "topic": "Binary search on answer (parametric search)",
+            "example_questions": [
+                "Allocate minimum pages such that no student reads more than necessary.",
+                "Find the minimum capacity to ship packages within D days.",
+                "Koko eating bananas — find minimum speed.",
+            ],
+            "companies": ["Flipkart", "Amazon", "Atlassian"],
+        },
+        {
+            "topic": "Graph BFS and DFS",
+            "example_questions": [
+                "Find the number of islands in a 2D grid.",
+                "Clone a graph with random pointers.",
+                "Minimum steps to reach target in a word-ladder problem.",
+            ],
+            "companies": ["Microsoft", "Amazon", "Swiggy"],
+        },
+        {
+            "topic": "Dynamic Programming — 1D",
+            "example_questions": [
+                "Longest increasing subsequence.",
+                "Coin change problem — minimum coins.",
+                "Jump game — can you reach the last index?",
+            ],
+            "companies": ["Amazon", "Adobe", "Ola"],
+        },
+        {
+            "topic": "Tree traversals and classic tree problems",
+            "example_questions": [
+                "Lowest common ancestor of two nodes.",
+                "Diameter of a binary tree.",
+                "Check if two trees are mirror images of each other.",
+            ],
+            "companies": ["Microsoft", "Walmart Labs", "PayPal"],
+        },
+        {
+            "topic": "Backtracking and pruning",
+            "example_questions": [
+                "Generate all valid combinations of N pairs of parentheses.",
+                "Solve Sudoku using backtracking.",
+                "Find all subsets of a set that sum to a target.",
+            ],
+            "companies": ["Uber", "Atlassian", "Booking.com"],
+        },
+        {
+            "topic": "Greedy algorithms",
+            "example_questions": [
+                "Activity selection / interval scheduling maximization.",
+                "Minimum platforms needed at a railway station.",
+                "Jump game II — minimum number of jumps.",
+            ],
+            "companies": ["Amazon", "Flipkart", "InMobi"],
+        },
+        {
+            "topic": "Prefix sums and difference arrays",
+            "example_questions": [
+                "Count subarrays with sum equal to k.",
+                "Range sum queries on a 2D matrix.",
+            ],
+            "companies": ["Adobe", "Intuit", "Makemytrip"],
+        },
+        {
+            "topic": "Heap and priority queue patterns",
+            "example_questions": [
+                "Merge k sorted linked lists.",
+                "Find the median from a data stream.",
+                "Top k frequent elements.",
+            ],
+            "companies": ["Amazon", "Microsoft", "Nutanix"],
+        },
+        {
+            "topic": "Union-Find and Topological Sort",
+            "example_questions": [
+                "Detect a cycle in a directed graph.",
+                "Course schedule — can you finish all courses?",
+                "Number of connected components in an undirected graph.",
+            ],
+            "companies": ["Atlassian", "Grab", "Uber"],
+        },
     ],
+
     "hard": [
-        "Dynamic Programming (2D and bitmask DP)",
-        "Segment Trees and Fenwick Trees",
-        "Network Flow and matching",
-        "Advanced graph algorithms (Dijkstra, Floyd-Warshall)",
-        "Trie data structures",
-        "Suffix arrays and string hashing",
-        "Heavy-Light Decomposition",
-        "Centroid Decomposition",
-        "Convex Hull Trick",
-        "Matrix Exponentiation",
+        # Patterns tested at Google, Meta, Rubrik, Snowflake, Stripe, Codeforces-level
+        {
+            "topic": "Dynamic Programming — 2D, interval, and bitmask DP",
+            "example_questions": [
+                "Edit distance between two strings.",
+                "Burst balloons — maximize coins collected.",
+                "Shortest path visiting all nodes (bitmask DP on graphs).",
+            ],
+            "companies": ["Google", "Meta", "Jane Street"],
+        },
+        {
+            "topic": "Segment trees and Fenwick trees",
+            "example_questions": [
+                "Range minimum query with point updates.",
+                "Count of smaller numbers after self.",
+                "Falling squares — max height after each drop.",
+            ],
+            "companies": ["Rubrik", "Snowflake", "Codeforces-level"],
+        },
+        {
+            "topic": "Advanced graph algorithms",
+            "example_questions": [
+                "Dijkstra's algorithm on a weighted graph with constraints.",
+                "Find bridges and articulation points in a graph.",
+                "Minimum cost to connect all nodes (MST variant).",
+            ],
+            "companies": ["Google", "Stripe", "Palantir"],
+        },
+        {
+            "topic": "Trie data structures",
+            "example_questions": [
+                "Design an autocomplete system.",
+                "Word search II — find all words in a board.",
+                "Maximum XOR of two numbers using a binary trie.",
+            ],
+            "companies": ["Google", "Meta", "Rubrik"],
+        },
+        {
+            "topic": "String algorithms — KMP, Z-function, rolling hash",
+            "example_questions": [
+                "Find all occurrences of a pattern in a text using KMP.",
+                "Longest repeated substring using suffix arrays.",
+                "Rabin-Karp for multi-pattern search.",
+            ],
+            "companies": ["Google", "Bloomberg", "DE Shaw"],
+        },
+        {
+            "topic": "Monotonic stack and deque",
+            "example_questions": [
+                "Largest rectangle in a histogram.",
+                "Sliding window maximum.",
+                "Trapping rain water — both O(n) space and O(1) space solutions.",
+            ],
+            "companies": ["Meta", "Stripe", "Snowflake"],
+        },
+        {
+            "topic": "Hard DP — convex hull trick and divide-and-conquer DP",
+            "example_questions": [
+                "Optimal strategy to minimize cost using the convex hull trick.",
+                "Divide and conquer optimization for DP transitions.",
+            ],
+            "companies": ["Jane Street", "Two Sigma", "competitive programming"],
+        },
+        {
+            "topic": "System design–flavored coding problems",
+            "example_questions": [
+                "Design an LRU cache with O(1) get and put.",
+                "Implement a rate limiter using a sliding window log.",
+                "Design a distributed task scheduler — key data structures.",
+            ],
+            "companies": ["Rubrik", "Snowflake", "Stripe", "Databricks"],
+        },
+        {
+            "topic": "Heavy-Light Decomposition and tree queries",
+            "example_questions": [
+                "Path sum queries on a weighted tree with updates.",
+            ],
+            "companies": ["Google", "competitive programming", "ICPC-level"],
+        },
+        {
+            "topic": "Matrix exponentiation",
+            "example_questions": [
+                "Compute Fibonacci(n) in O(log n) using matrix exponentiation.",
+                "Count paths of length k in a graph.",
+            ],
+            "companies": ["Jane Street", "DE Shaw", "competitive programming"],
+        },
     ],
+}
+
+
+# ─── Interviewer personas per difficulty ─────────────────────
+# These shape the "voice" and style of the interviewer
+INTERVIEWER_PERSONAS = {
+    "easy": {
+        "name": "Priya",
+        "style": "warm, encouraging, and patient",
+        "company_vibe": "a mid-size tech company doing a campus recruitment drive",
+        "pacing": "Go at a comfortable pace. Give the candidate time to think.",
+    },
+    "medium": {
+        "name": "Arjun",
+        "style": "professional, direct, and thoughtful",
+        "company_vibe": "a top product company like Amazon or Microsoft",
+        "pacing": "Keep a steady pace. Probe deeper if the answer is shallow.",
+    },
+    "hard": {
+        "name": "Rohan",
+        "style": "sharp, concise, and intellectually demanding",
+        "company_vibe": "an elite company like Google, Rubrik, or a quant fund",
+        "pacing": "Move quickly. Expect precise answers. Follow up relentlessly.",
+    },
 }
 
 
 def _get_api_keys(prefix: str) -> list[str]:
     keys = []
-    
-    # Check exact prefix first e.g. GROQ_API_KEY
+
     exact_key = os.environ.get(prefix, "")
     if exact_key:
         keys.extend([k.strip() for k in exact_key.split(",") if k.strip()])
-        
-    # Check plural comma separated e.g. GROQ_API_KEYS
+
     multi_key = os.environ.get(f"{prefix}S", "")
     if multi_key:
         keys.extend([k.strip() for k in multi_key.split(",") if k.strip()])
-        
+
     base_key = os.environ.get(prefix)
     if base_key and base_key not in keys:
         keys.append(base_key)
-        
+
     for i in range(1, 10):
         k = os.environ.get(f"{prefix}_{i}")
         if k and k not in keys:
             keys.append(k)
-            
+
     return list(dict.fromkeys(keys))
+
 
 def _call_llm(prompt: str) -> str:
     """Call Groq or Gemini LLM with the given prompt, using key rotation."""
     groq_keys = _get_api_keys("GROQ_API_KEY")
     gemini_keys = _get_api_keys("GEMINI_API_KEY")
 
-    # Cycle through Groq keys
     for api_key in groq_keys:
         url = "https://api.groq.com/openai/v1/chat/completions"
         headers = {
@@ -108,11 +369,10 @@ def _call_llm(prompt: str) -> str:
                 return response.json()["choices"][0]["message"]["content"]
             print(f"Groq error ({response.status_code}): {response.text}")
         except Exception:
-            pass # Move to next key
+            pass
 
-    # Cycle through Gemini keys if Groq fails
     for api_key in gemini_keys:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
         headers = {"Content-Type": "application/json"}
         payload = {"contents": [{"parts": [{"text": prompt}]}]}
         try:
@@ -129,6 +389,9 @@ def _call_llm(prompt: str) -> str:
 
 def _transcribe_audio(audio_bytes: bytes) -> str:
     """Use Groq Whisper API for Speech-to-Text with key rotation."""
+    if not audio_bytes:
+        return ""
+        
     groq_keys = _get_api_keys("GROQ_API_KEY")
     if not groq_keys:
         raise ValueError("GROQ_API_KEY required for speech-to-text")
@@ -151,7 +414,7 @@ def _transcribe_audio(audio_bytes: bytes) -> str:
 
 
 def _synthesize_speech(text: str) -> bytes:
-    """Use gTTS for reliable Text-to-Speech."""
+    """Use gTTS for Text-to-Speech."""
     try:
         tts = gTTS(text=text, lang='en', tld='com')
         fp = io.BytesIO()
@@ -162,46 +425,71 @@ def _synthesize_speech(text: str) -> bytes:
         return b""
 
 
+def _build_topic_context(level: str) -> str:
+    """Build a concise topic list string with example questions for the prompt."""
+    pool = TOPIC_POOLS.get(level, TOPIC_POOLS["easy"])
+    lines = []
+    for item in pool:
+        examples = "; ".join(item["example_questions"][:2])
+        lines.append(f"- {item['topic']} (e.g. {examples})")
+    return "\n".join(lines)
+
+
 def generate_first_question(level: str, duration: int) -> tuple[str, bytes]:
     """
-    Generate the opening question for an AI interview session.
+    Generate the opening message for an AI interview session.
     Returns (question_text, audio_bytes).
     """
-    topics = TOPIC_POOLS.get(level, TOPIC_POOLS["easy"])
-    topic_list = ", ".join(topics[:5])
+    persona = INTERVIEWER_PERSONAS.get(level, INTERVIEWER_PERSONAS["easy"])
 
-    prompt = f"""You are a senior software engineer conducting a technical coding interview.
-The interview is {duration} minutes long at the "{level}" difficulty level.
+    # TTS-friendly prompt: short sentences, no symbols, no lists, natural pauses via commas/periods
+    prompt = f"""You are {persona['name']}, a senior software engineer at {persona['company_vibe']}.
+You are {persona['style']}.
+You are about to conduct a {duration}-minute technical coding interview.
 
-Generate your FIRST interview question. Follow these rules:
-1. Start with a brief, warm greeting (1 sentence max).
-2. Ask the candidate to briefly introduce themselves and their background.
-3. Do NOT ask any technical or coding questions yet.
-4. Keep the entire response under 50 words.
-5. Do NOT use markdown formatting or bullet points. Speak naturally as an interviewer would.
-6. Do NOT use placeholders like [Candidate Name]! Just say "Hi there" or use a generic friendly greeting."""
+Your task: deliver the opening of the interview — out loud, as if speaking to the candidate sitting across from you.
+
+Rules you must follow:
+1. Greet the candidate warmly but briefly. One sentence only.
+2. Tell them the duration and rough structure: introduction, then coding questions.
+3. Ask them to introduce themselves — name, background, what they have been working on recently.
+4. Do NOT ask any technical question yet.
+5. Total response must be under 60 words.
+6. Write in short, natural spoken sentences. No bullet points, no markdown, no code, no placeholders.
+7. Use a comma or period between ideas so the text-to-speech sounds natural with pauses.
+8. Do not say things like "I am an AI" or reference being a bot.
+9. Never use brackets or placeholder text like [Name]."""
 
     question_text = _call_llm(prompt)
     audio_bytes = _synthesize_speech(question_text)
     return question_text, audio_bytes
 
 
-def process_response(level: str, duration: int, chat_history: list, audio_bytes: bytes, time_up: bool = False, system_action: str = "") -> tuple[str, bytes, str]:
+def process_response(
+    level: str,
+    duration: int,
+    chat_history: list,
+    audio_bytes: bytes,
+    time_up: bool = False,
+    system_action: str = "",
+) -> tuple[str, bytes, str]:
     """
-    Process user's audio response or system actions and generate the next interviewer question.
+    Process the candidate's audio response or a system action,
+    then generate the next interviewer turn.
     Returns (next_question_text, audio_bytes, user_transcript).
     """
-    # Step 1: Transcribe user audio (if no system action)
+    persona = INTERVIEWER_PERSONAS.get(level, INTERVIEWER_PERSONAS["easy"])
+
+    # ── Step 1: Transcribe ───────────────────────────────────────────────
     if system_action:
         user_transcript = "[Candidate remained silent]"
     else:
         user_transcript = _transcribe_audio(audio_bytes)
         if not user_transcript.strip():
-            fallback = "I didn't catch that. Could you please repeat your answer?"
-            fallback_audio = _synthesize_speech(fallback)
-            return fallback, fallback_audio, ""
+            fallback = "I did not quite catch that. Could you say that again, please?"
+            return fallback, _synthesize_speech(fallback), ""
 
-    # Step 2: Build conversation context
+    # ── Step 2: Build conversation history string ────────────────────────
     conversation = ""
     for entry in chat_history:
         role = entry.get("role", "unknown")
@@ -210,54 +498,99 @@ def process_response(level: str, duration: int, chat_history: list, audio_bytes:
             conversation += f"Interviewer: {text}\n"
         else:
             conversation += f"Candidate: {text}\n"
-
     conversation += f"Candidate: {user_transcript}\n"
 
-    topics = TOPIC_POOLS.get(level, TOPIC_POOLS["easy"])
-    topic_list = ", ".join(topics)
+    topic_context = _build_topic_context(level)
 
+    # ── Step 3: Choose the right prompt based on situation ───────────────
+
+    # --- Idle nudge: candidate silent for ~1 minute ---
     if system_action == "idle_nudge":
-        prompt = f"""You are a senior software engineer conducting a technical coding interview.
-The candidate has been silent for 1 minute.
-Politely ask them if they are still thinking, or if they need a hint. Keep it under 20 words. Do not use markdown."""
-    elif system_action == "idle_skip":
-        prompt = f"""You are a senior software engineer conducting a technical coding interview.
-The candidate has remained silent even after being prompted. 
-Assume they don't know the answer. Briefly state that we will move on, and ask a NEW algorithmic question. Keep it under 60 words. Do not use markdown."""
-    elif time_up:
-        prompt = f"""You are a senior software engineer conducting a technical coding interview.
-The interview time has now expired.
+        prompt = f"""You are {persona['name']}, a senior engineer conducting a {duration}-minute coding interview.
+You are {persona['style']}.
 
-Here is the conversation so far:
-{conversation}
+The candidate has gone silent for about a minute.
 
-Based on the candidate's last response, give a very brief suggestion or feedback on it (1-2 sentences), and then formally conclude the interview by thanking them for their time. 
-Do not ask any new questions.
-Keep your response under 80 words total. Be natural and conversational. Do not use markdown, bullet points, or code blocks."""
-    else:
-        prompt = f"""You are a senior software engineer conducting a technical coding interview.
-The interview is {duration} minutes long at the "{level}" difficulty level.
-Topics you can cover: {topic_list}
-
-Here is the conversation so far:
-{conversation}
-
-If the candidate just introduced themselves, acknowledge it briefly and then ask your FIRST algorithmic coding question based on the topics above.
-Otherwise, based on the candidate's last response, do ONE of the following:
-- If their answer is correct/good: Briefly acknowledge it (1 sentence), then ask a NEW algorithmic question or dive deeper.
-- If their answer is partially correct: Point out what's missing and ask a follow-up to guide them.
-- If their answer is wrong: Gently correct them with a brief explanation and move to the next question.
-
-Important Focus Areas:
-- Focus primarily on the core algorithm and problem-solving approach.
-- Do NOT focus heavily on edge cases. You may ask about them occasionally, but keep the focus on the main algorithmic logic.
+Say something natural and human — not robotic. You could:
+- Acknowledge that thinking takes time.
+- Offer a small nudge like asking what approach they are considering.
+- Offer a hint if they seem stuck.
 
 Rules:
-1. Keep your response under 80 words total.
-2. Be conversational and natural—you are speaking, not writing.
-3. Do NOT use markdown, bullet points, or code blocks.
-4. Do NOT say "Let's move on to" or use robotic transitions.
-5. Ask only ONE question at a time."""
+- Under 25 words.
+- Spoken, conversational tone. No markdown. No lists. No code blocks.
+- Use short sentences with commas for natural TTS pacing."""
+
+    # --- Idle skip: still silent after the nudge ---
+    elif system_action == "idle_skip":
+        prompt = f"""You are {persona['name']}, a senior engineer conducting a {duration}-minute coding interview.
+You are {persona['style']}.
+
+The candidate did not respond even after being prompted.
+
+Gently acknowledge that it is okay, briefly say you will move on, and then ask a fresh question from the following topic areas:
+{topic_context}
+
+Rules:
+- Under 60 words total.
+- Ask only ONE new question.
+- Spoken, conversational tone. Short sentences. No markdown. No lists. No code blocks.
+- Make the transition feel natural, not robotic."""
+
+    # --- Time up: wrap up the interview ---
+    elif time_up:
+        prompt = f"""You are {persona['name']}, a senior engineer wrapping up a {duration}-minute coding interview.
+You are {persona['style']}.
+
+Here is the full conversation:
+{conversation}
+
+Your task: deliver a natural, human closing to the interview.
+
+Do this in order:
+1. Give one or two sentences of genuine, specific feedback on the candidate's last answer — mention something concrete they said.
+2. Tell them the interview is now over and thank them sincerely.
+3. Optionally tell them what the next steps might be (feedback in a few days, HR will reach out, etc.).
+
+Rules:
+- Under 90 words total.
+- Warm but professional tone.
+- Short, spoken sentences with natural pauses.
+- No markdown. No bullet points. No code blocks.
+- Do not ask any new technical questions."""
+
+    # --- Normal flow: evaluate and ask next question ---
+    else:
+        prompt = f"""You are {persona['name']}, a senior engineer at {persona['company_vibe']}.
+You are {persona['style']}.
+You are conducting a {duration}-minute technical coding interview.
+
+Available topics and example questions you can draw from:
+{topic_context}
+
+Here is the conversation so far:
+{conversation}
+
+Your task: respond as the interviewer in the next turn.
+
+Use this decision logic:
+- If the candidate just introduced themselves: acknowledge one specific thing they mentioned, then ask your first algorithmic coding question. Pick a topic appropriate for "{level}" difficulty.
+- If their answer is strong and correct: acknowledge it in one short sentence (be specific — say what they got right), then move to a harder or follow-up question.
+- If their answer is partially correct: call out what was good, then point out the gap clearly and ask a targeted follow-up to guide them toward the full solution.
+- If their answer is wrong or they are very confused: correct them briefly but kindly, give a one-sentence hint or reframe, and ask a simpler version or a new question.
+
+Evaluation quality bar (use this internally to judge the answer):
+- Easy level: expect correct brute force or basic optimized approach. O(n^2) is acceptable. Clean logic matters.
+- Medium level: expect an optimized approach. Brute force gets partial credit. Must explain complexity.
+- Hard level: expect the optimal solution with correct complexity analysis. Expect follow-up on edge cases and scalability.
+
+Natural speech rules (critical — this will be read by a TTS engine):
+- Under 80 words total.
+- Short sentences. Use commas and periods to create natural spoken pauses.
+- No markdown, no bullet points, no code blocks, no asterisks, no backticks.
+- Do not say "Let's move on" or "Great question" or robotic filler phrases.
+- Do not number questions. Ask ONE question at a time.
+- Sound like a real person who is genuinely curious about how the candidate thinks."""
 
     next_question = _call_llm(prompt)
     next_audio = _synthesize_speech(next_question)
