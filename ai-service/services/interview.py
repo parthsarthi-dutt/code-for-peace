@@ -100,6 +100,7 @@ def _call_llm(prompt: str) -> str:
             response = requests.post(url, headers=headers, json=payload, timeout=10)
             if response.status_code == 200:
                 return response.json()["choices"][0]["message"]["content"]
+            print(f"Groq error ({response.status_code}): {response.text}")
         except Exception:
             pass # Move to next key
 
@@ -113,6 +114,7 @@ def _call_llm(prompt: str) -> str:
             if response.status_code == 200:
                 data = response.json()
                 return data["candidates"][0]["content"]["parts"][0]["text"]
+            print(f"Gemini error ({response.status_code}): {response.text}")
         except Exception:
             pass
 
