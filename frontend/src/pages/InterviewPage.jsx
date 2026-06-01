@@ -16,21 +16,30 @@ export default function InterviewPage() {
   const { user, isAuthenticated, loading: authLoading, refreshUser } = useAuth();
   const navigate = useNavigate();
 
-  // Setup state
-  const [level, setLevel] = useState('');
-  const [duration, setDuration] = useState(0);
+  // Setup state (persisted)
+  const [level, setLevel] = useState(() => sessionStorage.getItem('interviewLevel') || '');
+  const [duration, setDuration] = useState(() => {
+    const d = sessionStorage.getItem('interviewDuration');
+    return d ? parseInt(d) : 0;
+  });
 
-  // Active interview state
-  const [interviewId, setInterviewId] = useState(null);
-  const [chatHistory, setChatHistory] = useState([]);
-  const [code, setCode] = useState('// Write your code here...\n');
+  // Active interview state (persisted across refresh)
+  const [interviewStatus, setInterviewStatus] = useState(() => sessionStorage.getItem('interviewStatus') || 'setup');
+  const [interviewId, setInterviewId] = useState(() => sessionStorage.getItem('interviewId') ? parseInt(sessionStorage.getItem('interviewId')) : null);
+  const [chatHistory, setChatHistory] = useState(() => {
+    const h = sessionStorage.getItem('chatHistory');
+    return h ? JSON.parse(h) : [];
+  });
+  const [code, setCode] = useState(() => sessionStorage.getItem('interviewCode') || '// Write your code here...\n');
   const [isStarting, setIsStarting] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [interviewStatus, setInterviewStatus] = useState('setup'); // setup | active | completed
-  const [feedback, setFeedback] = useState('');
-
+  const [feedback, setFeedback] = useState(() => sessionStorage.getItem('interviewFeedback') || '');
+  
   // Timer state
-  const [timeLeft, setTimeLeft] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(() => {
+    const t = sessionStorage.getItem('timeLeft');
+    return t ? parseInt(t) : 0;
+  });
   const timerRef = useRef(null);
 
   // Audio recording
@@ -50,6 +59,29 @@ export default function InterviewPage() {
   // Past interviews
   const [pastInterviews, setPastInterviews] = useState([]);
 
+  // Persist state
+  useEffect(() => {
+    if (interviewStatus === 'setup') {
+      sessionStorage.removeItem('interviewStatus');
+      sessionStorage.removeItem('interviewId');
+      sessionStorage.removeItem('chatHistory');
+      sessionStorage.removeItem('timeLeft');
+      sessionStorage.removeItem('interviewCode');
+      sessionStorage.removeItem('interviewFeedback');
+      sessionStorage.removeItem('interviewLevel');
+      sessionStorage.removeItem('interviewDuration');
+    } else {
+      sessionStorage.setItem('interviewStatus', interviewStatus);
+      if (interviewId) sessionStorage.setItem('interviewId', interviewId);
+      sessionStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+      sessionStorage.setItem('timeLeft', timeLeft);
+      sessionStorage.setItem('interviewCode', code);
+      if (feedback) sessionStorage.setItem('interviewFeedback', feedback);
+      if (level) sessionStorage.setItem('interviewLevel', level);
+      if (duration) sessionStorage.setItem('interviewDuration', duration);
+    }
+  }, [interviewStatus, interviewId, chatHistory, timeLeft, code, feedback, level, duration]);
+
   const chatEndRef = useRef(null);
 
   // ─── End Interview ──────────────────────────────────
@@ -60,8 +92,14 @@ export default function InterviewPage() {
 
     try {
       const data = await endInterview(interviewId);
-      setFeedback(data.feedback || 'Interview completed.');
+      const fb = data.feedback || 'Interview completed.';
+      setFeedback(fb);
       setInterviewStatus('completed');
+      
+      // Clear persistence for next time, but keep feedback for current view
+      sessionStorage.removeItem('interviewStatus');
+      sessionStorage.removeItem('interviewId');
+      
       refreshUser();
 
       // Refresh past interviews
