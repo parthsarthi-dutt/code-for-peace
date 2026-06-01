@@ -22,10 +22,12 @@ func CreateAndWriteFile(code string, basePath string, submissionID string, fileE
     dirPath := basePath + submissionID
     filePath := dirPath + "/" + fileName
     slog.Debug("File created", slog.String("path", filePath))
-    err := os.MkdirAll(dirPath, 0755)
+    err := os.MkdirAll(dirPath, 0777)
     if err != nil {
         panic(err)
     }
+    // Explicitly chmod to bypass umask so Docker user 1001 can write compiled binaries
+    os.Chmod(dirPath, 0777)
     file, err := os.Create(filePath)
     if err != nil {
         panic(err)
