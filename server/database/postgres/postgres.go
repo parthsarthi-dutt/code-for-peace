@@ -11,7 +11,10 @@ import (
 var DB *pgxpool.Pool
 
 func ConnectDB() {
-	dsn := "postgres://judgeuser:judgepass@127.0.0.1:5435/onlinejudge?sslmode=disable"
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		dsn = "postgres://judgeuser:judgepass@127.0.0.1:5435/onlinejudge?sslmode=disable"
+	}
 
 	pool, err := pgxpool.New(context.Background(), dsn)
 	if err != nil {

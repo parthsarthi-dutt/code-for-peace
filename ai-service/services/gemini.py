@@ -1,13 +1,17 @@
 import time
 import os
 import requests
+import random
 from dotenv import load_dotenv
 
 load_dotenv()
 
 def generate_content(prompt: str, max_retries: int = 3) -> str:
-    groq_api_key = os.environ.get("GROQ_API_KEY")
-    gemini_api_key = os.environ.get("GEMINI_API_KEY")
+    groq_keys = os.environ.get("GROQ_API_KEYS", os.environ.get("GROQ_API_KEY", ""))
+    gemini_keys = os.environ.get("GEMINI_API_KEYS", os.environ.get("GEMINI_API_KEY", ""))
+    
+    groq_api_key = random.choice([k.strip() for k in groq_keys.split(",") if k.strip()]) if groq_keys else None
+    gemini_api_key = random.choice([k.strip() for k in gemini_keys.split(",") if k.strip()]) if gemini_keys else None
     
     if groq_api_key:
         url = "https://api.groq.com/openai/v1/chat/completions"

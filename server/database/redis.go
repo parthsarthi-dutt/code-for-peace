@@ -14,8 +14,13 @@ import (
 var RDB *redis.Client
 
 func ConnectRedis() {
+	redisAddr := os.Getenv("REDIS_URL")
+	if redisAddr == "" {
+		redisAddr = "localhost:6379"
+	}
+
 	RDB = redis.NewClient(&redis.Options{
-		Addr: "localhost:6379",
+		Addr: redisAddr,
 	})
 
 	// Create consumer groups for each stream on startup.

@@ -22,7 +22,11 @@ type HintRequestPayload struct {
 }
 
 func getAIClient() (evaluation.EvaluationServiceClient, *grpc.ClientConn, error) {
-	conn, err := grpc.Dial("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	aiServiceURL := os.Getenv("AI_SERVICE_URL")
+	if aiServiceURL == "" {
+		aiServiceURL = "localhost:50051"
+	}
+	conn, err := grpc.Dial(aiServiceURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, nil, err
 	}
