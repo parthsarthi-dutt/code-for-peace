@@ -50,6 +50,7 @@ export default function InterviewPage() {
   const [recordingTime, setRecordingTime] = useState(0);
   const recordingTimerRef = useRef(null);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const audioRef = useRef(null);
 
   // Idle tracking
   const [silentStrikes, setSilentStrikes] = useState(0);
@@ -116,6 +117,15 @@ export default function InterviewPage() {
   const handleEndInterview = useCallback(async () => {
     if (!interviewId) return;
     isEndingRef.current = true;
+    
+    // Stop any playing audio
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current = null;
+      setIsPlayingAudio(false);
+    }
+
     if (document.fullscreenElement) {
       document.exitFullscreen().catch(e => console.error(e));
     }
@@ -377,6 +387,7 @@ export default function InterviewPage() {
       const blob = new Blob([byteArray], { type: 'audio/wav' });
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
+      audioRef.current = audio;
       
       setIsPlayingAudio(true);
       audio.onended = () => {
