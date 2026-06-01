@@ -64,7 +64,13 @@ TOPIC_POOLS = {
 
 def _get_api_keys(prefix: str) -> list[str]:
     keys = []
-    # Check plural comma separated first e.g. GROQ_API_KEYS
+    
+    # Check exact prefix first e.g. GROQ_API_KEY
+    exact_key = os.environ.get(prefix, "")
+    if exact_key:
+        keys.extend([k.strip() for k in exact_key.split(",") if k.strip()])
+        
+    # Check plural comma separated e.g. GROQ_API_KEYS
     multi_key = os.environ.get(f"{prefix}S", "")
     if multi_key:
         keys.extend([k.strip() for k in multi_key.split(",") if k.strip()])
@@ -136,7 +142,9 @@ def _transcribe_audio(audio_bytes: bytes) -> str:
             response = requests.post(url, headers=headers, files=files, data=data, timeout=15)
             if response.status_code == 200:
                 return response.json().get("text", "")
-        except Exception:
+            print(f"Whisper STT error ({response.status_code}): {response.text}")
+        except Exception as e:
+            print(f"Whisper request failed: {e}")
             pass
 
     raise Exception("All Groq Whisper API keys failed.")
@@ -170,7 +178,8 @@ Generate your FIRST interview question. Follow these rules:
 2. Ask the candidate to briefly introduce themselves and their background.
 3. Do NOT ask any technical or coding questions yet.
 4. Keep the entire response under 50 words.
-5. Do NOT use markdown formatting or bullet points. Speak naturally as an interviewer would."""
+5. Do NOT use markdown formatting or bullet points. Speak naturally as an interviewer would.
+6. Do NOT use placeholders like [Candidate Name]! Just say "Hi there" or use a generic friendly greeting."""
 
     question_text = _call_llm(prompt)
     audio_bytes = _synthesize_speech(question_text)
