@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_BASE = 'http://16.171.155.103.nip.io:8080';
+// We use an empty API_BASE because Vercel will securely proxy our API requests to the AWS backend!
+const API_BASE = '';
 
 const api = axios.create({
   baseURL: API_BASE,
