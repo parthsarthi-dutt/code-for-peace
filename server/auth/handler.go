@@ -76,7 +76,7 @@ if user == nil {
         Email:         email,
         Username:      name,
         AvatarURL:     picture,
-        Tokens:        20,
+        Tokens:        100,
     }
 
     user, err = repository.CreateUser(newUser)
