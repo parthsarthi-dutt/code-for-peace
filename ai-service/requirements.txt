@@ -3,3 +3,4 @@ grpcio-tools==1.62.1
 google-generativeai
 python-dotenv
 requests
+gTTS

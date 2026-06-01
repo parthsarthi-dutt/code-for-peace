@@ -16,7 +16,10 @@ from urllib.parse import quote_plus
 
 load_dotenv()
 
-PIPER_TTS_URL = os.environ.get("PIPER_TTS_URL", "http://localhost:5002")
+import io
+from gtts import gTTS
+
+# Use gTTS for reliable Text-to-Speech without an external container
 
 # ─── Topic pools per difficulty ─────────────────────
 TOPIC_POOLS = {
@@ -138,17 +141,14 @@ def _transcribe_audio(audio_bytes: bytes) -> str:
 
 
 def _synthesize_speech(text: str) -> bytes:
-    """Use Piper TTS Docker container for Text-to-Speech."""
+    """Use gTTS for reliable Text-to-Speech."""
     try:
-        encoded_text = quote_plus(text)
-        response = requests.get(f"{PIPER_TTS_URL}/?text={encoded_text}", timeout=30)
-        if response.status_code == 200:
-            return response.content
-        else:
-            print(f"Piper TTS Error {response.status_code}: {response.text}")
-            return b""
+        tts = gTTS(text=text, lang='en', tld='com')
+        fp = io.BytesIO()
+        tts.write_to_fp(fp)
+        return fp.getvalue()
     except Exception as e:
-        print(f"Piper TTS connection error: {e}")
+        print(f"gTTS error: {e}")
         return b""
 
 
