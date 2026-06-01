@@ -83,10 +83,42 @@ export default function InterviewPage() {
   }, [interviewStatus, interviewId, chatHistory, timeLeft, code, feedback, level, duration]);
 
   const chatEndRef = useRef(null);
+  const isEndingRef = useRef(false);
+
+  // Fullscreen cheating enforcement
+  useEffect(() => {
+    if (interviewStatus !== 'active') return;
+
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement && !isEndingRef.current) {
+        alert("You exited fullscreen mode. The interview is now automatically ending.");
+        handleEndInterview();
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden && !isEndingRef.current) {
+        alert("You switched tabs or minimized the window. The interview is now automatically ending.");
+        handleEndInterview();
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [interviewStatus]); // Don't include handleEndInterview in deps to avoid constant rebinding
 
   // ─── End Interview ──────────────────────────────────
   const handleEndInterview = useCallback(async () => {
     if (!interviewId) return;
+    isEndingRef.current = true;
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(e => console.error(e));
+    }
     clearInterval(timerRef.current);
     setIsProcessing(true);
 
@@ -209,7 +241,13 @@ export default function InterviewPage() {
   const handleStartInterview = async () => {
     if (!level || !duration) return;
     setIsStarting(true);
+    isEndingRef.current = false;
+    
     try {
+      if (document.documentElement.requestFullscreen) {
+        await document.documentElement.requestFullscreen().catch(e => console.error(e));
+      }
+      
       const data = await startInterview(level, duration);
       setInterviewId(data.interview_id);
       setChatHistory([{ role: 'interviewer', text: data.question_text }]);
