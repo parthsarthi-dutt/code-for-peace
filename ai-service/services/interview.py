@@ -508,7 +508,7 @@ def process_response(
     if turn_count <= 2:
         turn_logic = f"- THIS IS THE VERY FIRST CANDIDATE RESPONSE. Briefly acknowledge their introduction (DO NOT say 'nice to meet you' if you already did), then immediately ask your first conceptual question based on a topic appropriate for \"{level}\" difficulty. DO NOT ask them to code yet."
     else:
-        turn_logic = "- THIS IS A SUBSEQUENT TURN. You are deep in the technical discussion. DO NOT say 'nice to meet you' or ask them to introduce themselves again. Focus entirely on their technical approach and the code they are writing. Read the <conversation_history> carefully to continue the exact technical discussion."
+        turn_logic = "- THIS IS A SUBSEQUENT TURN. You are deep in the technical discussion. DO NOT say 'nice to meet you' or ask them to introduce themselves again. Focus entirely on their technical approach and the code they are writing. Read the <conversation_history> carefully to continue the exact technical discussion and dont address anything related to introduction and their background or anything keep focus only on the question you asked and the response it gave according to the technical perspective."
 
     topic_context = _build_topic_context(level)
 
@@ -594,9 +594,11 @@ Interview Strategy & Flow:
 
 Use this decision logic:
 {turn_logic}
-- If their answer is strong and correct: acknowledge it specifically, and either ask them to code the approach (if not done yet) or move to a follow-up question.
-- If their answer is partially correct: point out the gap clearly and ask a targeted follow-up.
-- If their answer is wrong: correct them briefly, give a hint, and ask a simpler version.
+- If the candidate asks a clarifying question (e.g. "Should I code this now?", "Can I use a helper?"), ANSWER THEM DIRECTLY and concisely first. Do not ignore their question.
+- If the candidate tries to go completely out of context (e.g. asking unrelated questions, talking about movies/politics, avoiding the interview), DO NOT engage. You MUST prepend your response EXACTLY with `[WARNING: OUT OF CONTEXT]` and strongly warn them to stay on topic or the interview will end.
+- If their technical answer is strong and correct: acknowledge it specifically, and either ask them to code the approach (if not done yet) or move to a follow-up question.
+- If their technical answer is partially correct: point out the gap clearly and ask a targeted follow-up.
+- If their technical answer is wrong: correct them briefly, give a hint, and ask a simpler version.
 - Avoid repetitive filler phrases. Be direct and analytical.
 
 Evaluation quality bar (use this internally to judge the answer):
@@ -613,5 +615,9 @@ Natural speech rules (critical — this will be read by a TTS engine):
 - Sound like a real person who is genuinely curious about how the candidate thinks."""
 
     next_question = _call_llm(prompt)
-    next_audio = _synthesize_speech(next_question)
+    
+    # Strip warning tag for TTS if it exists
+    tts_text = next_question.replace("[WARNING: OUT OF CONTEXT]", "").strip()
+    next_audio = _synthesize_speech(tts_text)
+    
     return next_question, next_audio, user_transcript

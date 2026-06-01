@@ -56,6 +56,10 @@ export default function InterviewPage() {
   const [silentStrikes, setSilentStrikes] = useState(0);
   const isNudgedRef = useRef(false);
   const idleTimerRef = useRef(null);
+  const contextStrikesRef = useRef(() => {
+    const s = sessionStorage.getItem('contextStrikes');
+    return s ? parseInt(s) : 0;
+  });
 
   // Past interviews
   const [pastInterviews, setPastInterviews] = useState([]);
@@ -71,6 +75,7 @@ export default function InterviewPage() {
       sessionStorage.removeItem('interviewFeedback');
       sessionStorage.removeItem('interviewLevel');
       sessionStorage.removeItem('interviewDuration');
+      sessionStorage.removeItem('contextStrikes');
     } else {
       sessionStorage.setItem('interviewStatus', interviewStatus);
       if (interviewId) sessionStorage.setItem('interviewId', interviewId);
@@ -80,6 +85,7 @@ export default function InterviewPage() {
       if (feedback) sessionStorage.setItem('interviewFeedback', feedback);
       if (level) sessionStorage.setItem('interviewLevel', level);
       if (duration) sessionStorage.setItem('interviewDuration', duration);
+      sessionStorage.setItem('contextStrikes', typeof contextStrikesRef.current === 'function' ? 0 : contextStrikesRef.current || 0);
     }
   }, [interviewStatus, interviewId, chatHistory, timeLeft, code, feedback, level, duration]);
 
@@ -176,10 +182,27 @@ export default function InterviewPage() {
     setIsProcessing(true);
     try {
       const data = await sendInterviewResponse(interviewId, "", code, false, actionType);
-      const newEntries = [{ role: 'interviewer', text: data.question_text }];
+      
+      let qt = data.question_text;
+      let outOfContext = false;
+      if (qt.includes('[WARNING: OUT OF CONTEXT]')) {
+        qt = qt.replace('[WARNING: OUT OF CONTEXT]', '').trim();
+        outOfContext = true;
+      }
+      
+      const newEntries = [{ role: 'interviewer', text: qt }];
       setChatHistory(prev => [...prev, ...newEntries]);
       if (data.audio_base64) {
         playAudioBase64(data.audio_base64);
+      }
+      
+      if (outOfContext) {
+        const currentStrikes = typeof contextStrikesRef.current === 'function' ? 0 : contextStrikesRef.current;
+        contextStrikesRef.current = currentStrikes + 1;
+        if (contextStrikesRef.current >= 3) {
+          alert("You have repeatedly attempted to take the interview out of context. The interview will now be automatically terminated.");
+          handleEndInterview();
+        }
       }
     } catch (err) {
       console.error('System action failed:', err);
@@ -348,14 +371,21 @@ export default function InterviewPage() {
       const isTimeUp = timeLeft <= 60; // Conclude if less than a minute left
       const data = await sendInterviewResponse(interviewId, audioBase64, code, isTimeUp);
 
+      let qt = data.question_text;
+      let outOfContext = false;
+      if (qt.includes('[WARNING: OUT OF CONTEXT]')) {
+        qt = qt.replace('[WARNING: OUT OF CONTEXT]', '').trim();
+        outOfContext = true;
+      }
+
       // Update chat
       const newEntries = [];
       if (data.user_transcript) {
         newEntries.push({ role: 'candidate', text: data.user_transcript });
       }
-      newEntries.push({ role: 'interviewer', text: data.question_text });
+      newEntries.push({ role: 'interviewer', text: qt });
+      
       setChatHistory(prev => [...prev, ...newEntries]);
-
       setAudioBlob(null);
 
       // Play AI audio
@@ -365,6 +395,15 @@ export default function InterviewPage() {
         });
       } else {
         if (isTimeUp) handleEndInterview();
+      }
+      
+      if (outOfContext) {
+        const currentStrikes = typeof contextStrikesRef.current === 'function' ? 0 : contextStrikesRef.current;
+        contextStrikesRef.current = currentStrikes + 1;
+        if (contextStrikesRef.current >= 3) {
+          alert("You have repeatedly attempted to take the interview out of context. The interview will now be automatically terminated.");
+          handleEndInterview();
+        }
       }
     } catch (err) {
       console.error('Failed to process response:', err);
