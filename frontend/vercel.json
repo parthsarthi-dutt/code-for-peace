@@ -5,8 +5,8 @@
       "destination": "http://16.171.155.103.nip.io:8080/api/:path*"
     },
     {
-      "source": "/auth/:path*",
-      "destination": "http://16.171.155.103.nip.io:8080/auth/:path*"
+      "source": "/auth/google/:path*",
+      "destination": "http://16.171.155.103.nip.io:8080/auth/google/:path*"
     },
     {
       "source": "/(.*)",
