@@ -329,3 +329,70 @@ pre {
   background: var(--accent-primary-dim);
   color: var(--text-primary);
 }
+
+/* --- AI Interview Feedback Styling --- */
+.interview-feedback {
+  background: rgba(30, 30, 36, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 32px;
+  margin-top: 24px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+  animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.interview-feedback h2 {
+  color: #ffffff;
+  font-size: 1.75rem;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.feedback-content {
+  color: #e2e8f0;
+  line-height: 1.7;
+  font-size: 1.05rem;
+}
+
+.feedback-content h2, .feedback-content h3 {
+  color: #ffffff;
+  margin-top: 28px;
+  margin-bottom: 12px;
+  font-size: 1.25rem;
+  border: none;
+  padding: 0;
+  font-weight: 600;
+}
+
+.feedback-content p {
+  margin-bottom: 16px;
+}
+
+.feedback-content ul, .feedback-content ol {
+  margin-left: 20px;
+  margin-bottom: 20px;
+  background: rgba(0,0,0,0.15);
+  padding: 16px 16px 16px 36px;
+  border-radius: 8px;
+  border-left: 3px solid #6366f1;
+}
+
+.feedback-content li {
+  margin-bottom: 10px;
+}
+
+.feedback-content li:last-child {
+  margin-bottom: 0;
+}
+
+.feedback-content strong {
+  color: #4ade80;
+  font-weight: 600;
+}

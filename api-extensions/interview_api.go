@@ -441,6 +441,9 @@ Provide a concise performance summary:
 3. Areas for improvement (2-3 bullet points)
 4. Specific topics the candidate should study
 
+**CRITICAL SCORING RULE:**
+If the transcript shows that the candidate exited early, did not provide any substantive technical answers, or merely completed the introduction without solving any problems, you MUST give an overall rating of 0/10. Do not invent strengths if none were demonstrated. Be extremely strict about giving a 0 if the interview was essentially empty.
+
 Format your response using Markdown. Use appropriate headings (e.g. ## Performance Summary, ### Strengths), bold text for emphasis, and bullet points. Keep it professional and constructive.`
 
 	// Call the LLM directly via HTTP (same as AI service does)
