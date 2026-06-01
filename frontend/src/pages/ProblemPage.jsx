@@ -244,7 +244,7 @@ export default function ProblemPage() {
     setEditorialLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:8080/api/problem/editorial?id=${id}`, {
+      const res = await fetch(`http://16.171.155.103.nip.io:8080/api/problem/editorial?id=${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.status === 403) {
@@ -265,7 +265,7 @@ export default function ProblemPage() {
   const handleUnlockEditorial = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:8080/api/problem/editorial/unlock', {
+      const res = await fetch('http://16.171.155.103.nip.io:8080/api/problem/editorial/unlock', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

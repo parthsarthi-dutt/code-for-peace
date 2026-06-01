@@ -98,13 +98,15 @@ if user == nil {
 	}
 
 	// Determine the frontend origin to redirect back to
-	frontendOrigin := "http://localhost:5173"
-	if referer := r.Header.Get("Referer"); referer != "" {
-		// Try to extract origin from referer
-		for _, candidate := range []string{"http://localhost:5174", "http://localhost:5173"} {
-			if len(referer) >= len(candidate) && referer[:len(candidate)] == candidate {
-				frontendOrigin = candidate
-				break
+	frontendOrigin := os.Getenv("FRONTEND_URL")
+	if frontendOrigin == "" {
+		frontendOrigin = "http://localhost:5173"
+		if referer := r.Header.Get("Referer"); referer != "" {
+			for _, candidate := range []string{"http://localhost:5174", "http://localhost:5173", "http://localhost:3000"} {
+				if len(referer) >= len(candidate) && referer[:len(candidate)] == candidate {
+					frontendOrigin = candidate
+					break
+				}
 			}
 		}
 	}
