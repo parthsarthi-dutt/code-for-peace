@@ -4,20 +4,46 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func main() {
-	dsn := "postgres://judgeuser:judgepass@127.0.0.1:5435/onlinejudge?sslmode=disable"
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		dsn = "postgres://judgeuser:judgepass@127.0.0.1:5435/onlinejudge?sslmode=disable"
+	}
 	pool, err := pgxpool.New(context.Background(), dsn)
 	if err != nil {
 		log.Fatalf("Unable to connect to DB: %v\n", err)
 	}
 	defer pool.Close()
 
-	// Add missing columns to users
+	// Create tables if they don't exist
 	queries := []string{
+		`CREATE TABLE IF NOT EXISTS users (
+			id SERIAL PRIMARY KEY,
+			oauth_provider TEXT,
+			oauth_id TEXT UNIQUE,
+			email TEXT,
+			username TEXT,
+			avatar_url TEXT,
+			created_at TIMESTAMP DEFAULT NOW()
+		);`,
+		`CREATE TABLE IF NOT EXISTS submissions (
+			submission_id TEXT PRIMARY KEY,
+			user_id TEXT,
+			problem_id TEXT,
+			code TEXT,
+			language TEXT,
+			verdict TEXT,
+			execution_time BIGINT,
+			memory_used BIGINT,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			message TEXT,
+			priority TEXT
+		);`,
 		`ALTER TABLE users ADD COLUMN IF NOT EXISTS tokens INT DEFAULT 0;`,
 		`ALTER TABLE users ADD COLUMN IF NOT EXISTS current_streak INT DEFAULT 0;`,
 		`ALTER TABLE users ADD COLUMN IF NOT EXISTS highest_streak INT DEFAULT 0;`,
