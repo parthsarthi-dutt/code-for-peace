@@ -29,7 +29,7 @@ export default function Navbar() {
 
         <div className="navbar-links">
           <Link to="/" className="nav-link">Problems</Link>
-          <Link to="/interview" className="nav-link">AI Interview</Link>
+          <Link to="/interview" state={{ reset: Date.now() }} className="nav-link">AI Interview</Link>
         </div>
 
         <div className="navbar-actions">

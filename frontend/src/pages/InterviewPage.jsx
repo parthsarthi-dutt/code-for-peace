@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   startInterview,
@@ -15,6 +15,34 @@ import './InterviewPage.css';
 export default function InterviewPage() {
   const { user, isAuthenticated, loading: authLoading, refreshUser } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.reset) {
+      setInterviewStatus('setup');
+      setInterviewId('');
+      setChatHistory([]);
+      setTimeLeft(15 * 60);
+      setCode('');
+      setFeedback(null);
+      setLevel('');
+      setDuration(15);
+      if (contextStrikesRef) contextStrikesRef.current = 0;
+      
+      sessionStorage.removeItem('interviewStatus');
+      sessionStorage.removeItem('interviewId');
+      sessionStorage.removeItem('chatHistory');
+      sessionStorage.removeItem('timeLeft');
+      sessionStorage.removeItem('interviewCode');
+      sessionStorage.removeItem('interviewFeedback');
+      sessionStorage.removeItem('interviewLevel');
+      sessionStorage.removeItem('interviewDuration');
+      sessionStorage.removeItem('contextStrikes');
+      
+      // Clear location state to prevent loop on refresh
+      navigate('/interview', { replace: true });
+    }
+  }, [location.state?.reset, navigate]);
 
   // Setup state (persisted)
   const [level, setLevel] = useState(() => sessionStorage.getItem('interviewLevel') || '');
