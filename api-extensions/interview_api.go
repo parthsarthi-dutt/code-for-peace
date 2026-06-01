@@ -9,7 +9,9 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
+	"github.com/joho/godotenv"
 	"github.com/parthsarthi-dutt/online-judge/server/auth"
 	"github.com/parthsarthi-dutt/online-judge/server/database/postgres"
 	"github.com/parthsarthi-dutt/online-judge/server/proto/evaluation"
@@ -451,6 +453,26 @@ Format your response using Markdown. Use appropriate headings (e.g. ## Performan
 	// Call the LLM directly via HTTP to Groq API
 	apiKey := os.Getenv("GROQ_API_KEY")
 	if apiKey == "" {
+		keys := strings.Split(os.Getenv("GROQ_API_KEYS"), ",")
+		if len(keys) > 0 && keys[0] != "" {
+			apiKey = keys[0]
+		}
+	}
+	if apiKey == "" {
+		// Try reading directly from ai-service/.env if running from root
+		if envMap, err := godotenv.Read("ai-service/.env"); err == nil {
+			if k, ok := envMap["GROQ_API_KEY"]; ok && k != "" {
+				apiKey = k
+			} else if k, ok := envMap["GROQ_API_KEYS"]; ok && k != "" {
+				keys := strings.Split(k, ",")
+				if len(keys) > 0 && keys[0] != "" {
+					apiKey = keys[0]
+				}
+			}
+		}
+	}
+
+	if apiKey == "" {
 		return "Unable to generate feedback at this time (Missing configuration)."
 	}
 
@@ -472,12 +494,22 @@ Format your response using Markdown. Use appropriate headings (e.g. ## Performan
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
+		slog.Error("Groq HTTP request failed", slog.String("error", err.Error()))
 		return "Unable to generate feedback at this time."
 	}
 	defer resp.Body.Close()
 
 	var res map[string]interface{}
-	json.NewDecoder(resp.Body).Decode(&res)
+	err = json.NewDecoder(resp.Body).Decode(&res)
+	if err != nil {
+		slog.Error("Failed to decode Groq response", slog.String("error", err.Error()))
+		return "Unable to parse feedback response."
+	}
+
+	if resp.StatusCode != 200 {
+		slog.Error("Groq API returned error status", slog.Int("status", resp.StatusCode), slog.Any("response", res))
+		return "Unable to generate feedback at this time."
+	}
 
 	if choices, ok := res["choices"].([]interface{}); ok && len(choices) > 0 {
 		if choice, ok := choices[0].(map[string]interface{}); ok {
