@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
 
 	"github.com/parthsarthi-dutt/online-judge/server/models"
 	"github.com/parthsarthi-dutt/online-judge/server/repository"
