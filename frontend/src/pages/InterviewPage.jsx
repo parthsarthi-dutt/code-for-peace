@@ -439,9 +439,9 @@ export default function InterviewPage() {
   // ─── ACTIVE INTERVIEW VIEW ───────────────────────────
   if (interviewStatus === 'active') {
     return (
-      <div className="page-content fade-in" style={{ maxWidth: '100vw', padding: '0 20px' }}>
+      <div className="page-content fade-in" style={{ maxWidth: '100vw', paddingLeft: '20px', paddingRight: '20px' }}>
         <div className="interview-container" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', maxWidth: '1400px', margin: '0 auto' }}>
-          <div className="interview-active">
+          <div className="interview-active" style={{ height: 'calc(100vh - 120px)', display: 'flex', flexDirection: 'column' }}>
             {/* Timer Bar */}
             <div className="interview-timer-bar">
               <div>
