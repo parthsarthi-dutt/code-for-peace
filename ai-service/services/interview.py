@@ -504,6 +504,12 @@ def process_response(
     if code_text.strip():
         conversation += f"\n[Candidate's Current Code in Editor]\n{code_text}\n"
 
+    turn_count = len(chat_history)
+    if turn_count <= 2:
+        turn_logic = f"- THIS IS THE VERY FIRST CANDIDATE RESPONSE. Briefly acknowledge their introduction (DO NOT say 'nice to meet you' if you already did), then immediately ask your first conceptual question based on a topic appropriate for \"{level}\" difficulty. DO NOT ask them to code yet."
+    else:
+        turn_logic = "- THIS IS A SUBSEQUENT TURN. You are deep in the technical discussion. DO NOT say 'nice to meet you' or ask them to introduce themselves again. Focus entirely on their technical approach and the code they are writing. Read the <conversation_history> carefully to continue the exact technical discussion."
+
     topic_context = _build_topic_context(level)
 
     # ── Step 3: Choose the right prompt based on situation ───────────────
@@ -587,8 +593,7 @@ Interview Strategy & Flow:
 4. If it's a 30 min interview, ask for a mid-sized code snippet. AVOID very tough or excessively long implementations as time is limited.
 
 Use this decision logic:
-- If this is the first turn (the conversation history only has your intro): acknowledge their intro briefly, then immediately ask your first conceptual question based on a topic appropriate for "{level}" difficulty. DO NOT ask them to code yet.
-- For all subsequent turns: DO NOT ask them to introduce themselves again. DO NOT repeat your previous questions. Read the <conversation_history> carefully to continue the exact technical discussion.
+{turn_logic}
 - If their answer is strong and correct: acknowledge it specifically, and either ask them to code the approach (if not done yet) or move to a follow-up question.
 - If their answer is partially correct: point out the gap clearly and ask a targeted follow-up.
 - If their answer is wrong: correct them briefly, give a hint, and ask a simpler version.
