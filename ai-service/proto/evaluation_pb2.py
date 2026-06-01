@@ -14,7 +14,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x10\x65valuation.proto\x12\nevaluation\"S\n\x0bHintRequest\x12\x19\n\x11problem_statement\x18\x01 \x01(\t\x12\x11\n\tuser_code\x18\x02 \x01(\t\x12\x16\n\x0e\x65\x64itorial_code\x18\x03 \x01(\t\"\x1c\n\x0cHintResponse\x12\x0c\n\x04hint\x18\x01 \x01(\t\"W\n\x0f\x46\x65\x65\x64\x62\x61\x63kRequest\x12\x19\n\x11problem_statement\x18\x01 \x01(\t\x12\x11\n\tuser_code\x18\x02 \x01(\t\x12\x16\n\x0e\x65\x64itorial_code\x18\x03 \x01(\t\"$\n\x10\x46\x65\x65\x64\x62\x61\x63kResponse\x12\x10\n\x08\x66\x65\x65\x64\x62\x61\x63k\x18\x01 \x01(\t\"8\n\x15StartInterviewRequest\x12\r\n\x05level\x18\x01 \x01(\t\x12\x10\n\x08\x64uration\x18\x02 \x01(\x05\"\x93\x01\n\x18InterviewResponseRequest\x12\r\n\x05level\x18\x01 \x01(\t\x12\x10\n\x08\x64uration\x18\x02 \x01(\x05\x12\x19\n\x11\x63hat_history_json\x18\x03 \x01(\t\x12\x13\n\x0b\x61udio_bytes\x18\x04 \x01(\x0c\x12\x0f\n\x07time_up\x18\x05 \x01(\x08\x12\x15\n\rsystem_action\x18\x06 \x01(\t\"`\n\x19InterviewQuestionResponse\x12\x15\n\rquestion_text\x18\x01 \x01(\t\x12\x13\n\x0b\x61udio_bytes\x18\x02 \x01(\x0c\x12\x17\n\x0fuser_transcript\x18\x03 \x01(\t2\xf1\x02\n\x11\x45valuationService\x12\x41\n\x0cGenerateHint\x12\x17.evaluation.HintRequest\x1a\x18.evaluation.HintResponse\x12M\n\x10GenerateFeedback\x12\x1b.evaluation.FeedbackRequest\x1a\x1c.evaluation.FeedbackResponse\x12\x61\n\x15StartInterviewSession\x12!.evaluation.StartInterviewRequest\x1a%.evaluation.InterviewQuestionResponse\x12g\n\x18ProcessInterviewResponse\x12$.evaluation.InterviewResponseRequest\x1a%.evaluation.InterviewQuestionResponseBBZ@github.com/parthsarthi-dutt/online-judge/server/proto/evaluationb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x10\x65valuation.proto\x12\nevaluation\"S\n\x0bHintRequest\x12\x19\n\x11problem_statement\x18\x01 \x01(\t\x12\x11\n\tuser_code\x18\x02 \x01(\t\x12\x16\n\x0e\x65\x64itorial_code\x18\x03 \x01(\t\"\x1c\n\x0cHintResponse\x12\x0c\n\x04hint\x18\x01 \x01(\t\"W\n\x0f\x46\x65\x65\x64\x62\x61\x63kRequest\x12\x19\n\x11problem_statement\x18\x01 \x01(\t\x12\x11\n\tuser_code\x18\x02 \x01(\t\x12\x16\n\x0e\x65\x64itorial_code\x18\x03 \x01(\t\"$\n\x10\x46\x65\x65\x64\x62\x61\x63kResponse\x12\x10\n\x08\x66\x65\x65\x64\x62\x61\x63k\x18\x01 \x01(\t\"8\n\x15StartInterviewRequest\x12\r\n\x05level\x18\x01 \x01(\t\x12\x10\n\x08\x64uration\x18\x02 \x01(\x05\"\xa1\x01\n\x18InterviewResponseRequest\x12\r\n\x05level\x18\x01 \x01(\t\x12\x10\n\x08\x64uration\x18\x02 \x01(\x05\x12\x19\n\x11\x63hat_history_json\x18\x03 \x01(\t\x12\x13\n\x0b\x61udio_bytes\x18\x04 \x01(\x0c\x12\x0f\n\x07time_up\x18\x05 \x01(\x08\x12\x15\n\rsystem_action\x18\x06 \x01(\t\x12\x0c\n\x04\x63ode\x18\x07 \x01(\t\"`\n\x19InterviewQuestionResponse\x12\x15\n\rquestion_text\x18\x01 \x01(\t\x12\x13\n\x0b\x61udio_bytes\x18\x02 \x01(\x0c\x12\x17\n\x0fuser_transcript\x18\x03 \x01(\t2\xf1\x02\n\x11\x45valuationService\x12\x41\n\x0cGenerateHint\x12\x17.evaluation.HintRequest\x1a\x18.evaluation.HintResponse\x12M\n\x10GenerateFeedback\x12\x1b.evaluation.FeedbackRequest\x1a\x1c.evaluation.FeedbackResponse\x12\x61\n\x15StartInterviewSession\x12!.evaluation.StartInterviewRequest\x1a%.evaluation.InterviewQuestionResponse\x12g\n\x18ProcessInterviewResponse\x12$.evaluation.InterviewResponseRequest\x1a%.evaluation.InterviewQuestionResponseBBZ@github.com/parthsarthi-dutt/online-judge/server/proto/evaluationb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -33,9 +33,9 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _globals['_STARTINTERVIEWREQUEST']._serialized_start=274
   _globals['_STARTINTERVIEWREQUEST']._serialized_end=330
   _globals['_INTERVIEWRESPONSEREQUEST']._serialized_start=333
-  _globals['_INTERVIEWRESPONSEREQUEST']._serialized_end=480
-  _globals['_INTERVIEWQUESTIONRESPONSE']._serialized_start=482
-  _globals['_INTERVIEWQUESTIONRESPONSE']._serialized_end=578
-  _globals['_EVALUATIONSERVICE']._serialized_start=581
-  _globals['_EVALUATIONSERVICE']._serialized_end=950
+  _globals['_INTERVIEWRESPONSEREQUEST']._serialized_end=494
+  _globals['_INTERVIEWQUESTIONRESPONSE']._serialized_start=496
+  _globals['_INTERVIEWQUESTIONRESPONSE']._serialized_end=592
+  _globals['_EVALUATIONSERVICE']._serialized_start=595
+  _globals['_EVALUATIONSERVICE']._serialized_end=964
 # @@protoc_insertion_point(module_scope)

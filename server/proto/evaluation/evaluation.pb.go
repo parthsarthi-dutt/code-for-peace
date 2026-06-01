@@ -306,6 +306,7 @@ type InterviewResponseRequest struct {
 	AudioBytes      []byte `protobuf:"bytes,4,opt,name=audio_bytes,json=audioBytes,proto3" json:"audio_bytes,omitempty"`
 	TimeUp          bool   `protobuf:"varint,5,opt,name=time_up,json=timeUp,proto3" json:"time_up,omitempty"`
 	SystemAction    string `protobuf:"bytes,6,opt,name=system_action,json=systemAction,proto3" json:"system_action,omitempty"`
+	Code            string `protobuf:"bytes,7,opt,name=code,proto3" json:"code,omitempty"`
 }
 
 func (x *InterviewResponseRequest) Reset() {
@@ -378,6 +379,13 @@ func (x *InterviewResponseRequest) GetTimeUp() bool {
 func (x *InterviewResponseRequest) GetSystemAction() string {
 	if x != nil {
 		return x.SystemAction
+	}
+	return ""
+}
+
+func (x *InterviewResponseRequest) GetCode() string {
+	if x != nil {
+		return x.Code
 	}
 	return ""
 }

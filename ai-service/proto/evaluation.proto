@@ -43,6 +43,7 @@ message InterviewResponseRequest {
   bytes audio_bytes = 4;
   bool time_up = 5;
   string system_action = 6;
+  string code = 7;
 }
 
 message InterviewQuestionResponse {

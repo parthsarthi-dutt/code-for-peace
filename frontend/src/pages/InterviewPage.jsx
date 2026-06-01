@@ -9,6 +9,7 @@ import {
 } from '../api/client';
 import { Mic, Square, Send, Clock, Zap, Brain, Target } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import Editor from '@monaco-editor/react';
 import './InterviewPage.css';
 
 export default function InterviewPage() {
@@ -22,6 +23,7 @@ export default function InterviewPage() {
   // Active interview state
   const [interviewId, setInterviewId] = useState(null);
   const [chatHistory, setChatHistory] = useState([]);
+  const [code, setCode] = useState('// Write your code here...\n');
   const [isStarting, setIsStarting] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [interviewStatus, setInterviewStatus] = useState('setup'); // setup | active | completed
@@ -93,7 +95,7 @@ export default function InterviewPage() {
   const handleSystemAction = useCallback(async (actionType) => {
     setIsProcessing(true);
     try {
-      const data = await sendInterviewResponse(interviewId, "", false, actionType);
+      const data = await sendInterviewResponse(interviewId, "", code, false, actionType);
       const newEntries = [{ role: 'interviewer', text: data.question_text }];
       setChatHistory(prev => [...prev, ...newEntries]);
       if (data.audio_base64) {
@@ -258,7 +260,7 @@ export default function InterviewPage() {
       const audioBase64 = await base64Promise;
 
       const isTimeUp = timeLeft <= 60; // Conclude if less than a minute left
-      const data = await sendInterviewResponse(interviewId, audioBase64, isTimeUp);
+      const data = await sendInterviewResponse(interviewId, audioBase64, code, isTimeUp);
 
       // Update chat
       const newEntries = [];
@@ -437,8 +439,8 @@ export default function InterviewPage() {
   // ─── ACTIVE INTERVIEW VIEW ───────────────────────────
   if (interviewStatus === 'active') {
     return (
-      <div className="page-content fade-in">
-        <div className="interview-container">
+      <div className="page-content fade-in" style={{ maxWidth: '100vw', padding: '0 20px' }}>
+        <div className="interview-container" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', maxWidth: '1400px', margin: '0 auto' }}>
           <div className="interview-active">
             {/* Timer Bar */}
             <div className="interview-timer-bar">
@@ -522,6 +524,28 @@ export default function InterviewPage() {
                 {isProcessing ? 'Processing...' : 'Send'}
               </button>
             </div>
+          </div>
+          <div className="interview-editor-container" style={{ display: 'flex', flexDirection: 'column', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-color)', height: 'calc(100vh - 120px)' }}>
+            <div style={{ padding: '12px 16px', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)', fontWeight: 600, color: 'var(--text-primary)' }}>
+              Interview Code Editor
+            </div>
+            <Editor
+              height="100%"
+              defaultLanguage="cpp"
+              theme="vs-dark"
+              value={code}
+              onChange={(value) => {
+                setCode(value);
+                if (!isRecording && !isStarting && interviewStatus === 'active') {
+                  startRecording().catch(console.error);
+                }
+              }}
+              options={{
+                minimap: { enabled: false },
+                fontSize: 14,
+                wordWrap: 'on'
+              }}
+            />
           </div>
         </div>
       </div>

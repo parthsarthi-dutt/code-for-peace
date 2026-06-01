@@ -58,6 +58,7 @@ class EvaluationServiceServicer(evaluation_pb2_grpc.EvaluationServiceServicer):
                 request.audio_bytes,
                 request.time_up,
                 request.system_action,
+                request.code,
             )
             return evaluation_pb2.InterviewQuestionResponse(
                 question_text=next_question,

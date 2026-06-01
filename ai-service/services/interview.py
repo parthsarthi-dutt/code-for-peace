@@ -472,6 +472,7 @@ def process_response(
     audio_bytes: bytes,
     time_up: bool = False,
     system_action: str = "",
+    code_text: str = "",
 ) -> tuple[str, bytes, str]:
     """
     Process the candidate's audio response or a system action,
@@ -499,6 +500,9 @@ def process_response(
         else:
             conversation += f"Candidate: {text}\n"
     conversation += f"Candidate: {user_transcript}\n"
+    
+    if code_text.strip():
+        conversation += f"\n[Candidate's Current Code in Editor]\n{code_text}\n"
 
     topic_context = _build_topic_context(level)
 
@@ -506,16 +510,18 @@ def process_response(
 
     # --- Idle nudge: candidate silent for ~1 minute ---
     if system_action == "idle_nudge":
+        code_context = ""
+        if code_text.strip():
+            code_context = "The candidate is currently typing code but hasn't spoken. Acknowledge that you see them writing code, and ask them to talk through their thought process."
+        else:
+            code_context = "The candidate has gone silent for about a minute and isn't writing any code. Offer a small nudge or hint."
+            
         prompt = f"""You are {persona['name']}, a senior engineer conducting a {duration}-minute coding interview.
 You are {persona['style']}.
 
-The candidate has gone silent for about a minute.
+{code_context}
 
-Say something natural and human — not robotic. You could:
-- Acknowledge that thinking takes time.
-- Offer a small nudge like asking what approach they are considering.
-- Offer a hint if they seem stuck.
-
+Say something natural and human — not robotic.
 Rules:
 - Under 25 words.
 - Spoken, conversational tone. No markdown. No lists. No code blocks.
@@ -573,11 +579,17 @@ Here is the conversation so far:
 
 Your task: respond as the interviewer in the next turn.
 
+Interview Strategy & Flow:
+1. Always ask more conceptual questions and explore the candidate's thinking first.
+2. Only ask them to write code if you specifically want to verify their coding skills after discussing the approach.
+3. If the interview is {duration} minutes (e.g. 15 min), ask for a SMALL code snippet if you ask them to code.
+4. If it's a 30 min interview, ask for a mid-sized code snippet. AVOID very tough or excessively long implementations as time is limited.
+
 Use this decision logic:
-- If the candidate just introduced themselves: acknowledge one specific thing they mentioned, then ask your first algorithmic coding question. Pick a topic appropriate for "{level}" difficulty.
-- If their answer is strong and correct: acknowledge it in one short sentence (be specific — say what they got right), then move to a harder or follow-up question.
-- If their answer is partially correct: call out what was good, then point out the gap clearly and ask a targeted follow-up to guide them toward the full solution.
-- If their answer is wrong or they are very confused: correct them briefly but kindly, give a one-sentence hint or reframe, and ask a simpler version or a new question.
+- If the candidate just introduced themselves: ask your first conceptual question based on a topic appropriate for "{level}" difficulty. DO NOT ask them to code yet.
+- If their answer is strong and correct: acknowledge it, and either ask them to code the approach (if not done yet) or move to a follow-up question.
+- If their answer is partially correct: point out the gap clearly and ask a targeted follow-up.
+- If their answer is wrong: correct them briefly, give a hint, and ask a simpler version.
 
 Evaluation quality bar (use this internally to judge the answer):
 - Easy level: expect correct brute force or basic optimized approach. O(n^2) is acceptable. Clean logic matters.

@@ -28,6 +28,7 @@ type InterviewResponsePayload struct {
 	AudioBase64  string `json:"audio_base64"`
 	TimeUp       bool   `json:"time_up"`
 	SystemAction string `json:"system_action"`
+	Code         string `json:"code"`
 }
 
 type InterviewHistoryEntry struct {
@@ -241,6 +242,7 @@ func ProcessInterviewResponseHandler(w http.ResponseWriter, r *http.Request) {
 		AudioBytes:      audioBytes,
 		TimeUp:          payload.TimeUp,
 		SystemAction:    payload.SystemAction,
+		Code:            payload.Code,
 	})
 	if err != nil {
 		slog.Error("AI interview processing failed", slog.String("error", err.Error()))

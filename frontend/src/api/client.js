@@ -84,10 +84,11 @@ export async function startInterview(level, duration) {
   return res.data;
 }
 
-export async function sendInterviewResponse(interviewId, audioBase64, timeUp = false, systemAction = "") {
+export async function sendInterviewResponse(interviewId, audioBase64, code = "", timeUp = false, systemAction = "") {
   const res = await api.post('/api/interview/respond', {
     interview_id: interviewId,
     audio_base64: audioBase64,
+    code: code,
     time_up: timeUp,
     system_action: systemAction,
   });
