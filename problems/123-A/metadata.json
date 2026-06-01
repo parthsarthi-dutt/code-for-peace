@@ -1,0 +1,8 @@
+{
+  "id": "123-A",
+  "title": "Permutation Removal",
+  "difficulty": "Hard",
+  "tags": ["math", "combinatorics"],
+  "time_limit": 2,
+  "memory_limit": 200
+}

@@ -1,237 +1,77 @@
-# CodeForPeace - Distributed Code Evaluation System
+# CodeForPeace - Advanced Agentic Online Judge & AI Interview Platform
 
-## Overview
+CodeForPeace is a next-generation, **distributed online judge platform** featuring a full competitive programming environment intertwined with an **Autonomous AI Technical Interviewer**. 
 
-This project is a **distributed online judge platform** designed to securely evaluate programming submissions at scale. It allows users to submit code for problems, executes the code inside isolated Docker containers, and returns the results after running against predefined test cases.
+It allows users to submit algorithmic code securely, execute it inside highly isolated Docker containers, track their streaks and tokens, and undergo real-time spoken technical interviews conducted by advanced LLMs (Groq & Gemini) and STT/TTS models.
 
-The system is built with a **scalable backend architecture** using Go, Redis job queues, worker pools, Docker sandboxing, and PostgreSQL for persistent storage.
+## ✨ Core Features
 
-The primary goal of the project is to simulate a production‑grade competitive programming judge similar to platforms like Codeforces, LeetCode, or HackerRank.
+### Competitive Programming Judge
+*   **Docker-Sandboxed Execution**: Submissions run securely in isolated containers (`judge-sandbox`) to prevent malicious execution while enforcing tight Memory & CPU limits.
+*   **Redis-Backed Distributed Queue**: All problem submissions are published to Redis Streams. Background worker nodes consume and process these submissions asynchronously.
+*   **Multi-Language Support**: Complete compilation and execution pipelines for C++, Java, and Python 3.
+*   **Token Gamification System**: Users earn 🪙 tokens dynamically as they solve problems and hit milestones (10, 50, 100+ problems).
 
----
+### Autonomous AI Interview System
+*   **Real-time Voice Interaction**: Uses Groq Whisper (Speech-to-Text) and Piper TTS (Text-to-Speech) for incredibly fast, spoken interviews directly in the browser.
+*   **Intelligent Agentic Interviewer**: Driven by Llama-3.1 (via Groq) and Gemini-2.5-Flash with smart API key rotation. The AI dynamically adapts to user skill levels (Easy, Medium, Hard).
+*   **Final Performance Metrics**: Provides a comprehensive markdown-styled post-interview evaluation with specific strengths, weaknesses, and study recommendations.
+*   **AI Hints & Feedback**: Users can spend earned tokens to get precise algorithm hints and complexity optimizations without revealing the direct solution.
 
-## Key Features
-
-- Secure code execution using Docker sandboxing
-- Distributed worker system for parallel evaluation
-- Redis job queue for asynchronous submission processing
-- PostgreSQL database for persistent storage
-- OAuth authentication for user login
-- Resource isolation with CPU and memory limits
-- Support for multiple programming languages
-- Automatic compilation and execution
-- Test case based evaluation
-
----
-
-## System Architecture
-
-The system follows a **producer–consumer architecture**.
-
-1. A user submits code through the API.
-2. The backend server validates the request.
-3. The submission is pushed to a Redis queue.
-4. Worker processes consume jobs from the queue.
-5. Workers compile and execute the code inside Docker containers.
-6. The output is compared with expected results.
-7. Results are stored in PostgreSQL and returned to the user.
-
-### Core Components
-
-**API Server**
-
-Handles user requests including authentication, problem retrieval, and code submissions.
-
-**Redis Queue**
-
-Acts as a message broker between the API server and worker pool, enabling asynchronous and scalable job processing.
-
-**Worker Pool**
-
-Multiple workers fetch submissions from Redis and process them concurrently.
-
-**Docker Sandbox**
-
-Each submission runs inside an isolated container with strict resource limits to ensure security.
-
-**PostgreSQL Database**
-
-Stores users, problems, submissions, and evaluation results.
+### Modern Gamified UI
+*   **Vite + React + Monaco Editor**: Blazing fast frontend with full syntax highlighting, problem statements, real-time submission verdicts, and a beautiful Dark Mode aesthetic.
+*   **React Portals & Modals**: Centered UI components ensuring pixel-perfect UX for modals and alerts.
 
 ---
 
-## Tech Stack
+## 🏗 System Architecture
 
-Backend
-
-- Go (Golang)
-- REST APIs
-
-Infrastructure
-
-- Docker
-- Redis
-
-Database
-
-- PostgreSQL
-
-Authentication
-
-- OAuth
+1.  **React Frontend**: Handles the gamified UI, Monaco Code Editor, and the Audio Recording pipeline for interviews.
+2.  **Go Backend**: The central API layer handling OAuth, PostgreSQL interactions, Rate Limiting (Redis), and distributing code payloads.
+3.  **Go Worker Nodes**: Consumes code submissions from Redis Streams. Compiles, mounts files into Docker sandboxes, and verifies inputs vs outputs.
+4.  **Python AI Service (gRPC)**: A microservice running on port `50051`. Receives requests from the Go backend. It rotates API keys to generate hints, interview questions, and parse audio data via Whisper.
 
 ---
 
-## Project Structure
+## 🚀 Deployment (Docker Compose)
 
+The project includes a ready-to-run `docker-compose.yml` to instantly spin up the Postgres database, Redis cache, the Python AI Service, and the Go Backend.
+
+### Prerequisites
+*   Docker & Docker Compose installed.
+*   `.env` file created in the root directory (containing DB credentials, Groq, and Gemini API keys).
+
+### Running Locally
+```bash
+# Start all services in detached mode
+docker-compose up -d --build
+
+# The React frontend can be started independently:
+cd frontend
+npm install
+npm run dev
 ```
-online-judge/
 
-api/
-    get_all_submissions.go      # Endpoint to fetch all submissions
-    get_submissions.go          # Endpoint to fetch user submissions
-    problem_endpoint.go         # Problem related APIs
-    submission_endpoint.go      # Code submission API
-
-problems/
-    123-A/                      # Problem folder with testcases
-    124-A/
-
-server/
-
-    auth/
-        google.go               # Google OAuth implementation
-        handler.go              # OAuth login handlers
-        jwt.go                  # JWT token generation and validation
-        middleware.go           # Authentication middleware
-
-    database/
-        postgres/
-            migrations/         # Database schema migrations
-            postgres.go        # PostgreSQL connection setup
-
-        problems.go            # Problem database operations
-        redis.go               # Redis queue configuration
-        submissions.go         # Submission database operations
-
-    docker/
-        Dockerfile             # Docker image used for sandbox execution
-
-    judge/
-        fileops.go             # File creation and management for submissions
-        runner.go              # Code compilation and execution logic
-        sandbox.go             # Docker sandbox configuration
-
-    models/
-        judgeResult.go         # Judge result structure
-        output.go              # Program output structure
-        problem.go             # Problem model
-        submission.go          # Submission model
-        user.go                # User model
-
-    queue/                    # Redis queue logic
-
-    repository/
-        submissions.go        # Submission repository
-        user.go               # User repository
-
-    workers/                  # Worker pool for processing submissions
-
-
-.env                          # Environment variables
-go.mod                        # Go module definition
-go.sum                        # Go dependencies checksum
-main.go                       # Application entry point
-```
----
-
-## Submission Flow
-
-1. User submits code for a problem.
-2. The server stores submission metadata.
-3. Submission is pushed into Redis queue.
-4. Worker retrieves job from queue.
-5. Worker prepares execution environment.
-6. Code is compiled if required.
-7. Program runs against test cases.
-8. Output is validated.
-9. Result is stored in database.
+### Important Deployment Note (Docker-in-Docker)
+The Go backend **requires access to the Docker daemon** to spawn isolated sandboxes for user code execution. 
+*   If deploying to a PaaS like **Render** or **Heroku**, standard Web Services *do not* grant access to the host's Docker socket. 
+*   **Recommendation**: Deploy the Go backend on a VPS (like an AWS EC2 instance or DigitalOcean Droplet) where the backend has root access to `docker run`.
 
 ---
 
-## Security Measures
-
-To ensure safe execution of untrusted code, the platform implements:
-
-- Docker container isolation
-- Disabled network access
-- Memory limits
-- CPU usage limits
-- Temporary filesystem execution
-
-These restrictions prevent malicious code from affecting the host system.
+## 🚦 Rate Limiting & Usage Restraints
+To maintain infrastructure stability, the following Redis-backed rate limits are enforced:
+*   **Code Run**: 1 execution per 10 seconds.
+*   **Code Submit**: 1 submission per 15 seconds.
+*   **AI Hints & Feedback**: Limited to exactly 5 requests per day, resetting on a rolling 24-hour window.
 
 ---
 
-## Running the Project
+## 🛠 Tech Stack
 
-### 1. Start PostgreSQL
-
-```
-docker run -d \
---name judge-postgres \
--e POSTGRES_USER=judgeuser \
--e POSTGRES_PASSWORD=judgepass \
--e POSTGRES_DB=onlinejudge \
--p 5435:5432 \
-postgres:16
-```
-
-### 2. Start Redis
-
-```
-docker run -d -p 6379:6379 redis
-```
-
-### 3. Run the Server
-
-```
-go run cmd/server/main.go
-```
-
-### 4. Start Workers
-
-```
-go run cmd/worker/main.go
-```
-
----
-
-## Future Improvements
-
-- Web frontend for problem solving
-- Leaderboards and contests
-- Multiple language runtimes
-- Code plagiarism detection
-- Rate limiting and monitoring
-- Horizontal scaling using Kubernetes
-
----
-
-## Learning Outcomes
-
-This project demonstrates:
-
-- Distributed system design
-- Secure code execution
-- Job queue architecture
-- Containerization with Docker
-- Backend development using Go
-- Scalable worker processing
-
----
-
-## License
-
-This project is created for educational and portfolio purposes.
-
+*   **Backend**: Go (Golang), gRPC
+*   **AI Microservice**: Python 3, Groq (Llama-3, Whisper), Google Gemini
+*   **Frontend**: React, Vite, Monaco Editor, Lucide Icons, React Markdown
+*   **Infrastructure**: Docker, Redis Streams
+*   **Database**: PostgreSQL
+*   **Auth**: Google OAuth 2.0

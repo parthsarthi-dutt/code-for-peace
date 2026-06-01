@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: online_judge
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+
+  ai-service:
+    build:
+      context: ./ai-service
+    ports:
+      - "50051:50051"
+    env_file:
+      - .env
+
+  backend:
+    build:
+      context: .
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL=postgres://postgres:password@db:5432/online_judge?sslmode=disable
+      - REDIS_ADDR=redis:6379
+      - AI_SERVICE_URL=ai-service:50051
+      - PORT=8080
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./problems:/app/problems
+    depends_on:
+      - db
+      - redis
+      - ai-service
+
+volumes:
+  pgdata:
+  redisdata:

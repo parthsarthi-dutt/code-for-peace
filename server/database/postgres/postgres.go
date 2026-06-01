@@ -2,7 +2,8 @@ package postgres
 
 import (
 	"context"
-	"log"
+	"log/slog"
+	"os"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -14,14 +15,16 @@ func ConnectDB() {
 
 	pool, err := pgxpool.New(context.Background(), dsn)
 	if err != nil {
-		log.Fatal("Unable to connect to DB:", err)
+		slog.Error("Unable to connect to DB", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
 
 	err = pool.Ping(context.Background())
 	if err != nil {
-		log.Fatal("DB ping failed:", err)
+		slog.Error("DB ping failed", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
 
 	DB = pool
-	log.Println("PostgreSQL connected")
+	slog.Info("PostgreSQL connected")
 }

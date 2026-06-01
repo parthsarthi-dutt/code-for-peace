@@ -2,7 +2,7 @@ package database
 
 import (
 	"encoding/json"
-	"log"
+	"log/slog"
 
 	"github.com/parthsarthi-dutt/online-judge/server/models"
 )
@@ -10,7 +10,7 @@ import (
 var ProblemDB = make(map[string][]byte)
 
 func CreateProblem(problemID string,timeLimit int64,memoryLimit int64){
-	log.Println("Problem Recorded")
+	slog.Info("Problem Recorded", slog.String("problem_id", problemID))
 
 	problem:=models.Problem{
 		
@@ -24,7 +24,7 @@ func CreateProblem(problemID string,timeLimit int64,memoryLimit int64){
 		panic(err)
 	}
 	ProblemDB[problemID]=data
-	log.Println("Problem Created Successfully")
+	slog.Info("Problem Created Successfully", slog.String("problem_id", problemID))
 
 }
 
@@ -42,6 +42,6 @@ func GetTimeAndMemory(problemID string)[]int64 {
 	}
 	ans[0] = problem.TimeLimit
 	ans[1] = problem.MemoryLimit
-	log.Println("Problem Info Returned")
+	slog.Debug("Problem Info Returned", slog.String("problem_id", problemID))
 	return ans
 }

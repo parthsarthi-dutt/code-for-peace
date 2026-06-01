@@ -4,15 +4,14 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
-const sandboxImage = "judge-sandbox"
-
-func CompileInSandbox(submissionPath string) (bool, string) {
+func CompileInSandbox(submissionPath string, lang LangConfig) (bool, string) {
 	absPath, err := filepath.Abs(submissionPath)
 	if err != nil {
 		return false, "Failed to resolve path: " + err.Error()
@@ -21,9 +20,12 @@ func CompileInSandbox(submissionPath string) (bool, string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// Compile to a unique temp name, then atomically rename to "main"
-	// This avoids "Text file busy" from a lingering previous container
-	tmpBinary := fmt.Sprintf("/sandbox/main_%d", time.Now().UnixNano())
+	compileCmd := lang.CompileCmd
+	if lang.FileExtension == ".cpp" {
+		tmpBinary := fmt.Sprintf("/sandbox/main_%d", time.Now().UnixNano())
+		compileCmd = fmt.Sprintf("g++ /sandbox/code%s -o %s -O2 -std=c++17 -Wall && mv %s /sandbox/main",
+			lang.FileExtension, tmpBinary, tmpBinary)
+	}
 
 	cmd := exec.CommandContext(ctx, "docker", "run",
 		"--rm",
@@ -34,9 +36,8 @@ func CompileInSandbox(submissionPath string) (bool, string) {
 		"--read-only",
 		"--tmpfs=/tmp:size=64m",
 		"-v", absPath+":/sandbox:rw",
-		sandboxImage,
-		"sh", "-c",
-		fmt.Sprintf("g++ /sandbox/code.cpp -o %s -O2 -std=c++17 -Wall && mv %s /sandbox/main", tmpBinary, tmpBinary),
+		lang.Image,
+		"sh", "-c", compileCmd,
 	)
 
 	out, err := cmd.CombinedOutput()
@@ -44,15 +45,23 @@ func CompileInSandbox(submissionPath string) (bool, string) {
 		return false, "Compilation Timed Out"
 	}
 	if err != nil {
-		log.Println("Compilation Error:", string(out))
-		return false, string(out)
+		slog.Error("Compilation Error", slog.String("output", string(out)))
+		cleanOut := strings.ReplaceAll(string(out), "/sandbox/", "")
+		return false, cleanOut
 	}
 
-	log.Println("Compilation successful")
+	slog.Info("Compilation successful")
 	return true, ""
 }
 
-func ExecuteInSandbox(submissionPath string, input string, timeLimitSec int64) (string, string, bool) {
+// ExecuteInSandbox runs the compiled binary (or interpreted script) inside
+// a Docker container with the given input piped to stdin.
+//
+// Returns (stdout, errorMessage, isTimeLimitExceeded).
+//
+// Key security: the volume is mounted as READ-ONLY (:ro) during execution
+// so the running program cannot modify its own source or binary.
+func ExecuteInSandbox(submissionPath string, input string, timeLimitSec int64, lang LangConfig) (string, string, bool) {
 	absPath, err := filepath.Abs(submissionPath)
 	if err != nil {
 		return "", "Failed to resolve path: " + err.Error(), false
@@ -71,21 +80,22 @@ func ExecuteInSandbox(submissionPath string, input string, timeLimitSec int64) (
 		"--tmpfs=/tmp:size=64m",
 		"-i",
 		"-v", absPath+":/sandbox:ro",
-		sandboxImage,
-		"/sandbox/main",
+		lang.Image,
+		"sh", "-c", lang.RunCmd,
 	)
 
 	cmd.Stdin = bytes.NewBufferString(input)
 	out, err := cmd.CombinedOutput()
 
 	if ctx.Err() == context.DeadlineExceeded {
-		log.Println("TLE: killing leftover container if any")
+		slog.Warn("TLE: killing leftover container if any")
 		return "", "Time Limit Exceeded", true
 	}
 	if err != nil {
-		log.Println("Runtime Error:", string(out))
-		return "", "Runtime Error: " + string(out), false
+		slog.Error("Runtime Error", slog.String("output", string(out)))
+		cleanOut := strings.ReplaceAll(string(out), "/sandbox/", "")
+		return "", "Runtime Error: " + cleanOut, false
 	}
 
 	return string(out), "", false
-}
+}

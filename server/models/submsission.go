@@ -14,4 +14,5 @@ type Submission struct {
 	MemoryUsed    int64     `json:"memory_used"`
 	Message       string    `json:"message"`
 	Priority      string    `json:"priority"`
+	TokensAwarded int       `json:"tokens_awarded"`
 }

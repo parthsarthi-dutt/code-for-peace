@@ -1,0 +1,8 @@
+{
+  "id": "125-H",
+  "title": "Segment Dissolution",
+  "difficulty": "Hard",
+  "tags": ["dp", "combinatorics", "divide and conquer"],
+  "time_limit": 2.0,
+  "memory_limit": 256
+}

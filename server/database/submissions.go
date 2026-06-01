@@ -1,7 +1,8 @@
 package database
 
 import (
-	"log"
+	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/parthsarthi-dutt/online-judge/server/models"
@@ -19,7 +20,7 @@ func UserSubmission(
 	priority string,
 ) {
 
-	log.Println("Submission Recorded")
+	slog.Info("Submission Recorded", slog.String("submission_id", submissionID))
 
 	// currentTime := time.Now()
 	// timeStamp := currentTime.Format("2006-01-02 15:04:05")
@@ -39,30 +40,33 @@ func UserSubmission(
 
 	err := repository.CreateSubmission(submission)
 	if err != nil {
-		log.Println("DB insert error:", err)
+		slog.Error("DB insert error", slog.String("error", err.Error()), slog.String("submission_id", submissionID))
 		return
 	}
 
-	log.Println("Submission stored in DB")
+	slog.Debug("Submission stored in DB", slog.String("submission_id", submissionID))
 
 	producer.PushSubmission(RDB, submissionID, priority)
 
-	log.Println("Submission pushed to queue")
+	slog.Debug("Submission pushed to queue", slog.String("submission_id", submissionID))
 }
 
 
 func GetInfo(submissionID string) []string {
 
 	data, err := repository.GetSubmission(submissionID)
-	if err!=nil {
-		panic("submission not found")
+	if err != nil {
+		slog.Error("GetInfo: submission not found", slog.String("submission_id", submissionID))
+		return nil
 	}
 
-	ans:=make([]string,2)
+	ans := make([]string, 4)
 
-	ans[0]=data.ProblemID
-	ans[1]=data.Code
-	log.Println("Submission Info Returned")
+	ans[0] = data.ProblemID
+	ans[1] = data.Code
+	ans[2] = data.Language
+	ans[3] = data.UserID
+	slog.Debug("Submission Info Returned", slog.String("submission_id", submissionID))
 	return ans
 }
 
@@ -72,6 +76,7 @@ func Result(
 	executionTime int64,
 	memoryUsed int64,
 	message string,
+	tokensAwarded int,
 ) {
 
 	err := repository.UpdateSubmissionResult(
@@ -80,30 +85,31 @@ func Result(
 		executionTime,
 		memoryUsed,
 		message,
+		tokensAwarded,
 	)
 
 	if err != nil {
-		log.Println("DB update error:", err)
+		slog.Error("DB update error", slog.String("error", err.Error()), slog.String("submission_id", submissionID))
 		return
 	}
 
-	log.Println("Submission result updated")
+	slog.Info("Submission result updated", slog.String("submission_id", submissionID))
 }
-func GetSubmission(submissionID string) (models.Submission, error){
+func GetSubmission(submissionID string) (models.Submission, error) {
 
 	submission, err := repository.GetSubmission(submissionID)
-	if err!=nil {
-		panic("submission not found")
+	if err != nil {
+		return models.Submission{}, fmt.Errorf("submission not found: %w", err)
 	}
 
 	return submission, nil
 }
-func GetAllSubmissions(userID string) ([]models.Submission, error){
+func GetAllSubmissions(userID string) ([]models.Submission, error) {
 
-	submission, err := repository.GetAllSubmissions(userID)
-	if err!=nil {
-		panic("submission not found")
+	submissions, err := repository.GetAllSubmissions(userID)
+	if err != nil {
+		return nil, fmt.Errorf("submissions not found: %w", err)
 	}
 
-	return submission, nil
+	return submissions, nil
 }

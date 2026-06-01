@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package evaluation;
+
+option go_package = "github.com/parthsarthi-dutt/online-judge/server/proto/evaluation";
+
+service EvaluationService {
+  rpc GenerateHint (HintRequest) returns (HintResponse);
+  rpc GenerateFeedback (FeedbackRequest) returns (FeedbackResponse);
+  rpc StartInterviewSession (StartInterviewRequest) returns (InterviewQuestionResponse);
+  rpc ProcessInterviewResponse (InterviewResponseRequest) returns (InterviewQuestionResponse);
+}
+
+message HintRequest {
+  string problem_statement = 1;
+  string user_code = 2;
+  string editorial_code = 3;
+}
+
+message HintResponse {
+  string hint = 1;
+}
+
+message FeedbackRequest {
+  string problem_statement = 1;
+  string user_code = 2;
+  string editorial_code = 3;
+}
+
+message FeedbackResponse {
+  string feedback = 1;
+}
+
+message StartInterviewRequest {
+  string level = 1;
+  int32 duration = 2;
+}
+
+message InterviewResponseRequest {
+  string level = 1;
+  int32 duration = 2;
+  string chat_history_json = 3;
+  bytes audio_bytes = 4;
+  bool time_up = 5;
+  string system_action = 6;
+}
+
+message InterviewQuestionResponse {
+  string question_text = 1;
+  bytes audio_bytes = 2;
+  string user_transcript = 3;
+}

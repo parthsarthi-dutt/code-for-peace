@@ -1,0 +1,8 @@
+{
+  "id": "125-A",
+  "title": "Prefix Equality",
+  "difficulty": "Medium",
+  "tags": ["greedy", "math", "constructive algorithms"],
+  "time_limit": 1.5,
+  "memory_limit": 256
+}

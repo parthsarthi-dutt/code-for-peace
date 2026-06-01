@@ -1,0 +1,139 @@
+.problem-card {
+  display: flex;
+  align-items: center;
+  padding: var(--space-4) var(--space-5);
+  transition: all var(--duration-fast) var(--ease-smooth);
+  text-decoration: none;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-subtle);
+  position: relative;
+}
+
+.problem-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  background: var(--accent-primary);
+  transition: width var(--duration-fast) var(--ease-smooth);
+  border-radius: 0 2px 2px 0;
+}
+
+.problem-card:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+}
+
+.problem-card:hover::before {
+  width: 3px;
+}
+
+.problem-card.even {
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.problem-card.even:hover {
+  background: var(--bg-card-hover);
+}
+
+/* ── Status ── */
+
+.problem-status {
+  width: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.status-icon {
+  font-size: 0.75rem;
+  font-weight: 700;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  transition: transform var(--duration-fast) var(--ease-bounce);
+}
+
+.problem-card:hover .status-icon {
+  transform: scale(1.1);
+}
+
+.status-icon.solved {
+  color: var(--success);
+  background: var(--success-dim);
+}
+
+.status-icon.attempted {
+  color: var(--danger-text);
+  background: var(--danger-dim);
+}
+
+.status-icon.unattempted {
+  color: var(--text-muted);
+  font-size: 0.5rem;
+}
+
+/* ── Info ── */
+
+.problem-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding-right: var(--space-4);
+}
+
+.problem-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: -0.01em;
+  transition: color var(--duration-fast);
+  word-wrap: break-word;
+  white-space: normal;
+}
+
+.problem-card:hover .problem-title {
+  color: var(--accent-primary-hover);
+}
+
+.problem-tags {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.problem-tag {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-subtle);
+  letter-spacing: 0.02em;
+}
+
+/* ── Meta ── */
+
+.problem-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-shrink: 0;
+}
+
+.difficulty-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}

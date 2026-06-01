@@ -3,7 +3,8 @@ package auth
 import (
 	"context"
 	"encoding/json"
-	"log"
+	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/parthsarthi-dutt/online-judge/server/models"
@@ -53,22 +54,20 @@ func GoogleCallback(w http.ResponseWriter, r *http.Request) {
 
 user, err := repository.GetUserByOAuthID(oauthID)
 
-log.Println("Lookup result:", user, "error:", err)
+slog.Debug("Lookup result", slog.Any("user", user), slog.Any("error", err))
 
 if err != nil {
-    log.Println("DB ERROR:", err)
+    slog.Error("Database error during OAuth lookup", slog.String("error", err.Error()), slog.String("oauth_id", oauthID))
     http.Error(w, "Database error", http.StatusInternalServerError)
     return
 }
 
 if user == nil {
-    log.Println("User not found, creating user...")
+    slog.Info("User not found, creating new user", slog.String("oauth_id", oauthID))
 }
 
 	// if user doesn't exist → create
 if user == nil {
-
-    log.Println("Creating user with OAuthID:", oauthID)
 
     newUser := models.User{
         OauthProvider: "google",
@@ -76,17 +75,18 @@ if user == nil {
         Email:         email,
         Username:      name,
         AvatarURL:     picture,
+        Tokens:        20,
     }
 
     user, err = repository.CreateUser(newUser)
 
     if err != nil {
-        log.Println("CreateUser error:", err)
+        slog.Error("Failed to create user", slog.String("error", err.Error()), slog.String("oauth_id", oauthID))
         http.Error(w, "User creation failed", http.StatusInternalServerError)
         return
     }
 
-    log.Println("User created with ID:", user.ID)
+    slog.Info("User created successfully", slog.Int("user_id", user.ID))
 }
 
 	// generate JWT
@@ -97,8 +97,28 @@ if user == nil {
 		return
 	}
 
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"token": jwtToken,
-		"user":  user,
-	})
+	// Determine the frontend origin to redirect back to
+	frontendOrigin := "http://localhost:5173"
+	if referer := r.Header.Get("Referer"); referer != "" {
+		// Try to extract origin from referer
+		for _, candidate := range []string{"http://localhost:5174", "http://localhost:5173"} {
+			if len(referer) >= len(candidate) && referer[:len(candidate)] == candidate {
+				frontendOrigin = candidate
+				break
+			}
+		}
+	}
+
+	redirectURL := fmt.Sprintf(
+		"%s/auth/callback?token=%s&user_id=%d&username=%s&avatar=%s&email=%s&tokens=%d",
+		frontendOrigin,
+		jwtToken,
+		user.ID,
+		user.Username,
+		user.AvatarURL,
+		user.Email,
+		user.Tokens,
+	)
+
+	http.Redirect(w, r, redirectURL, http.StatusTemporaryRedirect)
 }

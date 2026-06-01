@@ -1,0 +1,8 @@
+{
+  "id": "128-A",
+  "title": "Optimal Pairing",
+  "difficulty": "Easy",
+  "tags": ["greedy", "sorting", "two pointers"],
+  "time_limit": 1.0,
+  "memory_limit": 256
+}

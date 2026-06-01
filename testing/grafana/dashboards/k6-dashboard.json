@@ -1,0 +1,389 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 1,
+  "liveNow": true,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "📊 Overview",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [
+            { "color": "green", "value": null },
+            { "color": "yellow", "value": 500 },
+            { "color": "red", "value": 2000 }
+          ]},
+          "unit": "ms"
+        }
+      },
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 1 },
+      "id": 1,
+      "options": { "colorMode": "background", "graphMode": "area", "reduceOptions": { "calcs": ["mean"], "fields": "", "values": false }, "textMode": "auto" },
+      "pluginVersion": "11.6.0",
+      "targets": [{
+        "query": "SELECT mean(\"value\") FROM \"http_req_duration\" WHERE $timeFilter",
+        "rawQuery": true, "refId": "A", "resultFormat": "time_series"
+      }],
+      "title": "Avg Response Time",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [
+            { "color": "green", "value": null },
+            { "color": "yellow", "value": 1000 },
+            { "color": "red", "value": 3000 }
+          ]},
+          "unit": "ms"
+        }
+      },
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 1 },
+      "id": 2,
+      "options": { "colorMode": "background", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "pluginVersion": "11.6.0",
+      "targets": [{
+        "query": "SELECT percentile(\"value\", 95) FROM \"http_req_duration\" WHERE $timeFilter",
+        "rawQuery": true, "refId": "A", "resultFormat": "time_series"
+      }],
+      "title": "P95 Response Time",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [
+            { "color": "green", "value": null },
+            { "color": "red", "value": 0.1 }
+          ]},
+          "unit": "percentunit"
+        }
+      },
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 1 },
+      "id": 3,
+      "options": { "colorMode": "background", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "pluginVersion": "11.6.0",
+      "targets": [{
+        "query": "SELECT last(\"value\") FROM \"errors\" WHERE $timeFilter",
+        "rawQuery": true, "refId": "A", "resultFormat": "time_series"
+      }],
+      "title": "Error Rate",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [{ "color": "#6ed0e0", "value": null }] }
+        }
+      },
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 1 },
+      "id": 4,
+      "options": { "colorMode": "background", "graphMode": "area", "reduceOptions": { "calcs": ["max"], "fields": "", "values": false }, "textMode": "auto" },
+      "pluginVersion": "11.6.0",
+      "targets": [{
+        "query": "SELECT max(\"value\") FROM \"vus\" WHERE $timeFilter",
+        "rawQuery": true, "refId": "A", "resultFormat": "time_series"
+      }],
+      "title": "Peak Virtual Users",
+      "type": "stat"
+    },
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 7 },
+      "id": 101,
+      "title": "📈 Request Performance",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "" },
+      "fieldConfig": { "defaults": { "custom": { "lineWidth": 2, "fillOpacity": 15, "gradientMode": "scheme", "showPoints": "never" }, "unit": "ms" } },
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 8 },
+      "id": 5,
+      "options": { "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "alias": "Avg",  "query": "SELECT mean(\"value\") FROM \"http_req_duration\" WHERE $timeFilter GROUP BY time($__interval) fill(none)", "rawQuery": true, "refId": "A", "resultFormat": "time_series" },
+        { "alias": "P95",  "query": "SELECT percentile(\"value\", 95) FROM \"http_req_duration\" WHERE $timeFilter GROUP BY time($__interval) fill(none)", "rawQuery": true, "refId": "B", "resultFormat": "time_series" },
+        { "alias": "P99",  "query": "SELECT percentile(\"value\", 99) FROM \"http_req_duration\" WHERE $timeFilter GROUP BY time($__interval) fill(none)", "rawQuery": true, "refId": "C", "resultFormat": "time_series" }
+      ],
+      "title": "Response Time (Avg / P95 / P99)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "" },
+      "fieldConfig": { "defaults": { "custom": { "lineWidth": 2, "fillOpacity": 20, "gradientMode": "scheme", "showPoints": "never" }, "unit": "short" } },
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 8 },
+      "id": 6,
+      "targets": [
+        { "alias": "Active VUs",   "query": "SELECT mean(\"value\") FROM \"vus\" WHERE $timeFilter GROUP BY time($__interval) fill(none)", "rawQuery": true, "refId": "A", "resultFormat": "time_series" },
+        { "alias": "Requests/sec", "query": "SELECT non_negative_derivative(max(\"value\"), 1s) FROM \"http_reqs\" WHERE $timeFilter GROUP BY time($__interval) fill(none)", "rawQuery": true, "refId": "B", "resultFormat": "time_series" }
+      ],
+      "title": "Virtual Users & RPS",
+      "type": "timeseries"
+    },
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 },
+      "id": 102,
+      "title": "🔍 Endpoint Breakdown",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "" },
+      "fieldConfig": { "defaults": { "custom": { "lineWidth": 2, "fillOpacity": 10, "gradientMode": "scheme", "showPoints": "never" }, "unit": "ms" } },
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 19 },
+      "id": 7,
+      "targets": [
+        { "alias": "Public APIs",  "query": "SELECT mean(\"value\") FROM \"public_api_duration\" WHERE $timeFilter GROUP BY time($__interval) fill(none)", "rawQuery": true, "refId": "A", "resultFormat": "time_series" },
+        { "alias": "Auth APIs",    "query": "SELECT mean(\"value\") FROM \"auth_api_duration\" WHERE $timeFilter GROUP BY time($__interval) fill(none)", "rawQuery": true, "refId": "B", "resultFormat": "time_series" },
+        { "alias": "Submissions",  "query": "SELECT mean(\"value\") FROM \"submission_duration\" WHERE $timeFilter GROUP BY time($__interval) fill(none)", "rawQuery": true, "refId": "C", "resultFormat": "time_series" },
+        { "alias": "Profile",      "query": "SELECT mean(\"value\") FROM \"profile_duration\" WHERE $timeFilter GROUP BY time($__interval) fill(none)", "rawQuery": true, "refId": "D", "resultFormat": "time_series" }
+      ],
+      "title": "Duration by Endpoint Group",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "" },
+      "fieldConfig": { "defaults": { "custom": { "lineWidth": 2, "fillOpacity": 20, "gradientMode": "scheme", "showPoints": "never" }, "unit": "short" } },
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 19 },
+      "id": 8,
+      "targets": [
+        { "alias": "Total Req/s",      "query": "SELECT non_negative_derivative(max(\"value\"), 1s) FROM \"total_requests\" WHERE $timeFilter GROUP BY time($__interval) fill(none)", "rawQuery": true, "refId": "A", "resultFormat": "time_series" },
+        { "alias": "Submissions/s",    "query": "SELECT non_negative_derivative(max(\"value\"), 1s) FROM \"submissions_sent\" WHERE $timeFilter GROUP BY time($__interval) fill(none)", "rawQuery": true, "refId": "B", "resultFormat": "time_series" }
+      ],
+      "title": "Request & Submission Throughput (req/s)",
+      "type": "timeseries"
+    },
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 29 },
+      "id": 103,
+      "title": "📮 Redis Queue Performance",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "" },
+      "fieldConfig": { "defaults": { "custom": { "lineWidth": 2, "fillOpacity": 25, "gradientMode": "scheme", "showPoints": "never" }, "unit": "ms" } },
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 30 },
+      "id": 9,
+      "targets": [
+        { "alias": "Queue Latency Avg", "query": "SELECT mean(\"value\") FROM \"redis_queue_latency\" WHERE $timeFilter GROUP BY time($__interval) fill(none)", "rawQuery": true, "refId": "A", "resultFormat": "time_series" },
+        { "alias": "Queue Latency P95", "query": "SELECT percentile(\"value\", 95) FROM \"redis_queue_latency\" WHERE $timeFilter GROUP BY time($__interval) fill(none)", "rawQuery": true, "refId": "B", "resultFormat": "time_series" }
+      ],
+      "title": "Submission → Redis Queue Latency",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "" },
+      "fieldConfig": { "defaults": { "custom": { "lineWidth": 2, "fillOpacity": 20, "gradientMode": "scheme", "showPoints": "never" }, "unit": "short" } },
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 30 },
+      "id": 10,
+      "targets": [
+        { "alias": "Submissions/sec", "query": "SELECT non_negative_derivative(max(\"value\"), 1s) FROM \"submissions_sent\" WHERE $timeFilter GROUP BY time($__interval) fill(none)", "rawQuery": true, "refId": "A", "resultFormat": "time_series" }
+      ],
+      "title": "Code Submissions Per Second",
+      "type": "timeseries"
+    },
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 40 },
+      "id": 110,
+      "title": "🔴 Redis Server Metrics (Prometheus)",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [{ "color": "#6ed0e0", "value": null }] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 5, "w": 4, "x": 0, "y": 41 },
+      "id": 40,
+      "options": { "colorMode": "background", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "pluginVersion": "11.6.0",
+      "targets": [{ "expr": "redis_connected_clients", "refId": "A", "legendFormat": "Clients" }],
+      "title": "Redis Connected Clients",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [{ "color": "#7eb26d", "value": null }] },
+          "unit": "decbytes"
+        }
+      },
+      "gridPos": { "h": 5, "w": 4, "x": 4, "y": 41 },
+      "id": 41,
+      "options": { "colorMode": "background", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "pluginVersion": "11.6.0",
+      "targets": [{ "expr": "redis_memory_used_bytes", "refId": "A", "legendFormat": "Memory" }],
+      "title": "Redis Memory Used",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [{ "color": "#ef843c", "value": null }] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 5, "w": 4, "x": 8, "y": 41 },
+      "id": 42,
+      "options": { "colorMode": "background", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "pluginVersion": "11.6.0",
+      "targets": [{ "expr": "redis_blocked_clients", "refId": "A", "legendFormat": "Blocked" }],
+      "title": "Redis Blocked Clients",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [{ "color": "#6ed0e0", "value": null }] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 5, "w": 4, "x": 12, "y": 41 },
+      "id": 43,
+      "options": { "colorMode": "background", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "pluginVersion": "11.6.0",
+      "targets": [{ "expr": "redis_db_keys{db=\"db0\"}", "refId": "A", "legendFormat": "Keys" }],
+      "title": "Redis Keys (db0)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 0.9 }] },
+          "unit": "percentunit"
+        }
+      },
+      "gridPos": { "h": 5, "w": 4, "x": 16, "y": 41 },
+      "id": 44,
+      "options": { "colorMode": "background", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "pluginVersion": "11.6.0",
+      "targets": [{ "expr": "redis_keyspace_hits_total / (redis_keyspace_hits_total + redis_keyspace_misses_total)", "refId": "A", "legendFormat": "Hit Rate" }],
+      "title": "Redis Hit Rate",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [{ "color": "green", "value": null }] },
+          "unit": "s"
+        }
+      },
+      "gridPos": { "h": 5, "w": 4, "x": 20, "y": 41 },
+      "id": 45,
+      "options": { "colorMode": "background", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "pluginVersion": "11.6.0",
+      "targets": [{ "expr": "redis_uptime_in_seconds", "refId": "A", "legendFormat": "Uptime" }],
+      "title": "Redis Uptime",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "" },
+      "fieldConfig": { "defaults": { "custom": { "lineWidth": 2, "fillOpacity": 20, "gradientMode": "scheme", "showPoints": "never" }, "unit": "ops" } },
+      "gridPos": { "h": 9, "w": 8, "x": 0, "y": 46 },
+      "id": 50,
+      "targets": [
+        { "expr": "rate(redis_commands_processed_total[30s])", "legendFormat": "Commands/sec", "refId": "A" }
+      ],
+      "title": "Redis Commands/sec",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "" },
+      "fieldConfig": { "defaults": { "custom": { "lineWidth": 2, "fillOpacity": 20, "gradientMode": "scheme", "showPoints": "never" }, "unit": "decbytes" } },
+      "gridPos": { "h": 9, "w": 8, "x": 8, "y": 46 },
+      "id": 51,
+      "targets": [
+        { "expr": "redis_memory_used_bytes", "legendFormat": "Used", "refId": "A" },
+        { "expr": "redis_memory_used_rss_bytes", "legendFormat": "RSS", "refId": "B" }
+      ],
+      "title": "Redis Memory Over Time",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "" },
+      "fieldConfig": { "defaults": { "custom": { "lineWidth": 2, "fillOpacity": 15, "gradientMode": "scheme", "showPoints": "never" }, "unit": "Bps" } },
+      "gridPos": { "h": 9, "w": 8, "x": 16, "y": 46 },
+      "id": 52,
+      "targets": [
+        { "expr": "rate(redis_net_input_bytes_total[30s])", "legendFormat": "Input bytes/s", "refId": "A" },
+        { "expr": "rate(redis_net_output_bytes_total[30s])", "legendFormat": "Output bytes/s", "refId": "B" }
+      ],
+      "title": "Redis Network I/O",
+      "type": "timeseries"
+    },
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 55 },
+      "id": 104,
+      "title": "⚠️ Errors & Network",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "" },
+      "fieldConfig": { "defaults": { "custom": { "lineWidth": 2, "fillOpacity": 25, "showPoints": "never" }, "color": { "fixedColor": "red", "mode": "fixed" }, "unit": "percentunit" } },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 56 },
+      "id": 60,
+      "targets": [
+        { "alias": "Error Rate", "query": "SELECT mean(\"value\") FROM \"errors\" WHERE $timeFilter GROUP BY time($__interval) fill(none)", "rawQuery": true, "refId": "A", "resultFormat": "time_series" }
+      ],
+      "title": "Error Rate Over Time",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "" },
+      "fieldConfig": { "defaults": { "custom": { "lineWidth": 2, "fillOpacity": 15, "showPoints": "never" }, "unit": "decbytes" } },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 56 },
+      "id": 61,
+      "targets": [
+        { "alias": "Data Sent/s",     "query": "SELECT non_negative_derivative(max(\"value\"), 1s) FROM \"data_sent\" WHERE $timeFilter GROUP BY time($__interval) fill(none)", "rawQuery": true, "refId": "A", "resultFormat": "time_series" },
+        { "alias": "Data Received/s", "query": "SELECT non_negative_derivative(max(\"value\"), 1s) FROM \"data_received\" WHERE $timeFilter GROUP BY time($__interval) fill(none)", "rawQuery": true, "refId": "B", "resultFormat": "time_series" }
+      ],
+      "title": "Network Throughput",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["k6", "load-testing", "online-judge", "redis"],
+  "templating": { "list": [] },
+  "time": { "from": "now-15m", "to": "now" },
+  "title": "Online Judge — k6 Load Test Dashboard",
+  "uid": "online-judge-k6",
+  "version": 2
+}

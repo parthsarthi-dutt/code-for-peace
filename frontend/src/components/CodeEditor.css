@@ -1,0 +1,18 @@
+.code-editor-wrapper {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--border-default);
+  box-shadow: var(--shadow-sm);
+}
+
+.code-editor-wrapper .monaco-editor,
+.code-editor-wrapper .monaco-editor .margin,
+.code-editor-wrapper .monaco-editor-background {
+  background-color: #0c0c0e !important;
+}
+
+.code-editor-wrapper .monaco-editor .scroll-decoration {
+  box-shadow: none !important;
+}

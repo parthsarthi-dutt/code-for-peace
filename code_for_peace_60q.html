@@ -1,0 +1,189 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.wrap{padding:1rem 0;font-family:var(--font-sans)}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.5rem}
+.stat{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:.75rem 1rem;text-align:center}
+.stat-num{font-size:22px;font-weight:500;color:var(--color-text-primary)}
+.stat-label{font-size:12px;color:var(--color-text-secondary);margin-top:2px}
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1.25rem}
+.pill{font-size:12px;padding:5px 12px;border-radius:99px;border:0.5px solid var(--color-border-secondary);cursor:pointer;background:var(--color-background-primary);color:var(--color-text-secondary);transition:all .15s}
+.pill.active{background:#3C3489;color:#CECBF6;border-color:#3C3489}
+.pill:hover:not(.active){background:var(--color-background-secondary)}
+.search-wrap{margin-bottom:1.25rem}
+.search-wrap input{width:100%;padding:8px 12px;font-size:14px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary)}
+.q-list{display:flex;flex-direction:column;gap:8px}
+.q-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:.9rem 1rem;display:flex;align-items:flex-start;gap:12px;cursor:pointer;transition:border-color .15s}
+.q-card:hover{border-color:var(--color-border-primary)}
+.q-card.done{opacity:.45}
+.q-card.done .q-text{text-decoration:line-through}
+.check{width:18px;height:18px;border:1.5px solid var(--color-border-secondary);border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;font-size:11px;color:transparent}
+.q-card.done .check{background:#3C3489;border-color:#3C3489;color:#EEEDFE}
+.q-body{flex:1}
+.q-text{font-size:14px;color:var(--color-text-primary);line-height:1.5}
+.q-hint{font-size:12px;color:var(--color-text-tertiary);margin-top:4px;line-height:1.4;font-style:italic}
+.q-meta{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;min-width:90px}
+.q-tag{font-size:11px;padding:2px 8px;border-radius:99px;white-space:nowrap;text-align:center}
+.tag-redis{background:#FAECE7;color:#712B13}
+.tag-docker{background:#E6F1FB;color:#0C447C}
+.tag-go{background:#E1F5EE;color:#085041}
+.tag-pg{background:#EEEDFE;color:#3C3489}
+.tag-sec{background:#FCEBEB;color:#791F1F}
+.tag-sys{background:#FAEEDA;color:#633806}
+.tag-arch{background:#F1EFE8;color:#444441}
+.d-label{font-size:11px}
+.d-e{color:#0F6E56}.d-m{color:#854F0B}.d-h{color:#A32D2D}
+.q-num{font-size:11px;color:var(--color-text-tertiary);margin-top:2px}
+.empty{text-align:center;padding:2rem;color:var(--color-text-tertiary);font-size:14px}
+.section-label{font-size:11px;font-weight:500;color:var(--color-text-tertiary);text-transform:uppercase;letter-spacing:.06em;margin:1.5rem 0 .5rem;padding-left:2px}
+</style>
+
+<div class="wrap">
+<h2 class="sr-only">60 Code For Peace interview questions — track prep progress by topic</h2>
+
+<div class="stats-row">
+  <div class="stat"><div class="stat-num" id="s-done">0</div><div class="stat-label">done</div></div>
+  <div class="stat"><div class="stat-num" id="s-left">60</div><div class="stat-label">remaining</div></div>
+  <div class="stat"><div class="stat-num" id="s-pct">0%</div><div class="stat-label">progress</div></div>
+  <div class="stat"><div class="stat-num" id="s-show">60</div><div class="stat-label">showing</div></div>
+</div>
+
+<div class="filters" id="filters"></div>
+<div class="search-wrap"><input type="text" id="search" placeholder="Search questions..." oninput="render()"></div>
+<div class="q-list" id="qlist"></div>
+</div>
+
+<script>
+const Q=[
+  {id:1,tag:"arch",d:"e",text:"Describe Code For Peace in one paragraph — what problem does it solve and who is it for?",hint:"Interviewers want to know you understand the why, not just the what."},
+  {id:2,tag:"arch",d:"e",text:"Walk me through the end-to-end flow of a single code submission — from the moment the API receives it to the moment the user gets a result.",hint:"Draw this mentally: Client → API → Redis → Worker → Docker → DB → response."},
+  {id:3,tag:"arch",d:"e",text:"Why did you choose a queue-based architecture instead of executing code synchronously in the API handler?",hint:"Think decoupling, fault isolation, and backpressure."},
+  {id:4,tag:"arch",d:"m",text:"What are the main components of your system and what is each component's single responsibility?",hint:"API server, Redis queue, worker pool, Docker sandbox, PostgreSQL — each should have a crisp one-line purpose."},
+  {id:5,tag:"arch",d:"m",text:"How does your system behave when all four workers are busy and a new submission arrives?",hint:"The answer lives in your Redis queue — explain what BRPOP blocking means here."},
+  {id:6,tag:"arch",d:"m",text:"What would break first if you had to handle 2000 concurrent users instead of 200?",hint:"Think about which resource — queue depth, worker threads, DB connections, Docker spawn rate — saturates first."},
+  {id:7,tag:"arch",d:"m",text:"Why did you use four workers specifically? How would you decide the right number in production?",hint:"CPU cores, I/O wait ratio, Docker spawn overhead — what's your reasoning?"},
+  {id:8,tag:"arch",d:"h",text:"How would you add a second API server instance without breaking anything in your current design?",hint:"What's stateful? Redis is external, DB is external — what needs to be addressed?"},
+
+  {id:9,tag:"redis",d:"e",text:"Why did you choose Redis as your message queue instead of a database table with a polling loop?",hint:"Latency, blocking ops, and simplicity vs. the overhead of polling."},
+  {id:10,tag:"redis",d:"e",text:"What Redis data structure did you use for the queue — a List, a Stream, or something else? Why?",hint:"LPUSH + BRPOP on a List is the classic pattern. Be ready to explain it."},
+  {id:11,tag:"redis",d:"e",text:"Explain LPUSH and BRPOP in plain English. What does the 'B' in BRPOP mean and why is it important?",hint:"Blocking pop — the worker sleeps until a job arrives. No busy-waiting."},
+  {id:12,tag:"redis",d:"m",text:"What happens to jobs in the queue if Redis crashes and restarts? Did you account for this?",hint:"Default Redis is in-memory only. RDB vs AOF persistence, or acknowledging the tradeoff."},
+  {id:13,tag:"redis",d:"m",text:"How do you prevent a job from being lost if a worker picks it up from Redis but crashes before completing it?",hint:"This is the at-least-once delivery problem. Think about acknowledgement or visibility timeouts."},
+  {id:14,tag:"redis",d:"m",text:"What is the difference between Redis as a cache and Redis as a message queue? Which role are you using here?",hint:"Eviction policies, TTL, persistence semantics differ significantly."},
+  {id:15,tag:"redis",d:"m",text:"How would you monitor queue depth in Redis? What alert would you set and at what threshold?",hint:"LLEN command, and why a growing queue is a signal of worker saturation."},
+  {id:16,tag:"redis",d:"h",text:"If two workers both call BRPOP on the same queue, can they pick up the same job? Why or why not?",hint:"Redis is single-threaded in its command execution — BRPOP is atomic."},
+  {id:17,tag:"redis",d:"h",text:"What is a Redis dead-letter queue and would you add one to this system? When would a job end up there?",hint:"Think about failed jobs after N retries — where do they go?"},
+
+  {id:18,tag:"docker",d:"e",text:"Why do you run user code inside a Docker container instead of directly on the host machine?",hint:"Isolation, resource limits, security — pick all three and explain each."},
+  {id:19,tag:"docker",d:"e",text:"What is the difference between a Docker image and a Docker container in the context of your worker?",hint:"Image = template, container = running instance. How many containers do you spin per submission?"},
+  {id:20,tag:"docker",d:"m",text:"What specific resource limits did you configure on each container — CPU, memory, network, filesystem?",hint:"Be specific: --memory, --cpus, --network none, read-only filesystem?"},
+  {id:21,tag:"docker",d:"m",text:"How does Docker actually enforce resource limits under the hood?",hint:"cgroups (control groups) in the Linux kernel — CPU shares, memory limits."},
+  {id:22,tag:"docker",d:"m",text:"What happens if a user submits an infinite loop? How does your system detect and terminate it?",hint:"Container-level timeout — how did you implement the execution time limit?"},
+  {id:23,tag:"docker",d:"m",text:"How long does it take to spin up a Docker container for each submission? Does that affect your 80ms average?",hint:"Container startup can be 50-200ms. Did you pre-warm containers or use a pool?"},
+  {id:24,tag:"docker",d:"m",text:"How do you pass the user's code into the container and get the output back?",hint:"Volume mounts, stdin/stdout piping, or environment variables — which did you use?"},
+  {id:25,tag:"docker",d:"h",text:"What is a Docker namespace and what does it isolate — PID, network, filesystem?",hint:"PID namespace means the container can't see host processes. Network namespace means no host network access."},
+  {id:26,tag:"docker",d:"h",text:"How would you prevent a user from running `docker run` inside their submitted code to escape the sandbox?",hint:"--security-opt no-new-privileges, dropping capabilities, disabling the Docker socket inside the container."},
+  {id:27,tag:"docker",d:"h",text:"What is a fork bomb and would your current Docker setup survive one?",hint:":(){ :|:& };: — your --pids-limit flag is the answer here."},
+
+  {id:28,tag:"go",d:"e",text:"Why did you choose Go for this project over Node.js or Python?",hint:"Goroutines, low memory per concurrent connection, compiled binary, strong stdlib for HTTP."},
+  {id:29,tag:"go",d:"e",text:"How does your worker pool work in Go? What concurrency primitives did you use to manage 4 workers?",hint:"sync.WaitGroup, goroutines, channels — explain the lifecycle of a worker goroutine."},
+  {id:30,tag:"go",d:"m",text:"What is a goroutine and how is it different from an OS thread? Why does this matter for your worker pool?",hint:"Goroutines are multiplexed onto OS threads by the Go runtime — M:N threading model."},
+  {id:31,tag:"go",d:"m",text:"How did you handle the case where a worker goroutine panics while executing a sandboxed job?",hint:"recover() inside a deferred function — did you implement this?"},
+  {id:32,tag:"go",d:"m",text:"What is context.Context and why is it critical for your Docker execution timeout?",hint:"context.WithTimeout + exec.CommandContext — the context cancels the process when the deadline hits."},
+  {id:33,tag:"go",d:"m",text:"How do your 4 worker goroutines coordinate access to shared state without race conditions?",hint:"If they each independently pop from Redis, there's no shared state — that's the elegant part."},
+  {id:34,tag:"go",d:"h",text:"What is Go's memory model and what is a data race? How did you check for races in your code?",hint:"go run -race flag — the race detector. Happens-before relationships."},
+
+  {id:35,tag:"pg",d:"e",text:"What data do you store in PostgreSQL? Why not store everything in Redis?",hint:"Persistence, queryability, relational integrity — Redis is volatile by default."},
+  {id:36,tag:"pg",d:"e",text:"Describe the schema for storing a code submission and its result. What columns would the table have?",hint:"submission_id, user_id, language, code, status, stdout, stderr, exec_time_ms, created_at — walk through each."},
+  {id:37,tag:"pg",d:"m",text:"What indexes did you add to your submissions table and why?",hint:"user_id for per-user history, status for filtering pending jobs, created_at for time-range queries."},
+  {id:38,tag:"pg",d:"m",text:"How do you handle a DB write failure after a job completes — does the user get their result or not?",hint:"What's your retry/rollback strategy? Is the result also cached in Redis temporarily?"},
+  {id:39,tag:"pg",d:"m",text:"What is a PostgreSQL transaction and did you use one when persisting a submission result?",hint:"Think atomicity — you might update the submission status AND insert a result row in one transaction."},
+  {id:40,tag:"pg",d:"m",text:"How did you achieve under-100ms DB query times? What did you measure and optimize?",hint:"EXPLAIN ANALYZE, indexes, connection pooling — which did you use?"},
+  {id:41,tag:"pg",d:"h",text:"What is connection pooling and why is it critical when you have 200 concurrent users hitting PostgreSQL?",hint:"Each PostgreSQL connection is an OS process — expensive. PgBouncer or lib-level pooling."},
+
+  {id:42,tag:"sec",d:"e",text:"What is OAuth 2.0 and why did you use it to secure your API instead of simple API keys?",hint:"Delegated authorization, token expiry, scopes — OAuth is industry standard for APIs."},
+  {id:43,tag:"sec",d:"e",text:"What is the difference between authentication and authorization? Which does OAuth 2.0 handle?",hint:"AuthN = who are you, AuthZ = what can you do. OAuth is primarily authorization."},
+  {id:44,tag:"sec",d:"m",text:"Which OAuth 2.0 grant type did you implement — Authorization Code, Client Credentials, or something else? Why?",hint:"Client Credentials for machine-to-machine, Authorization Code for user-facing flows."},
+  {id:45,tag:"sec",d:"m",text:"What is an access token and a refresh token? How does your API validate an incoming access token?",hint:"Token introspection or JWT signature verification — which did you use?"},
+  {id:46,tag:"sec",d:"m",text:"How do you prevent a user from submitting malicious code that reads environment variables or host files?",hint:"Docker's isolated filesystem, read-only mounts, no volume sharing with the host."},
+  {id:47,tag:"sec",d:"m",text:"What is SQL injection and how did you prevent it in your PostgreSQL queries?",hint:"Parameterized queries / prepared statements — never string-concatenate user input into SQL."},
+  {id:48,tag:"sec",d:"m",text:"How do you prevent a user from calling external network APIs inside their submitted code?",hint:"--network none in Docker — the container has no network access at all."},
+  {id:49,tag:"sec",d:"h",text:"What is the principle of least privilege and how is it applied in your Docker sandbox configuration?",hint:"Drop all Linux capabilities, run as non-root user inside the container, read-only root filesystem."},
+  {id:50,tag:"sec",d:"h",text:"What is a container escape vulnerability? What steps in your setup reduce this risk?",hint:"Running as root inside the container, privileged flag, mounted Docker socket are the main risks."},
+
+  {id:51,tag:"sys",d:"e",text:"You processed 165,000 requests. How did you generate this load for testing? What tool did you use?",hint:"k6, wrk, Apache Bench, locust — if you used one of these, explain how you configured the load profile."},
+  {id:52,tag:"sys",d:"e",text:"What does 80ms average response time mean? Is average a good metric for latency? Why or why not?",hint:"Average is skewed by outliers — P50, P95, P99 percentiles paint a better picture."},
+  {id:53,tag:"sys",d:"m",text:"What is the 95th percentile latency and what does your P95 of 275ms mean in plain English?",hint:"95% of requests finish under 275ms. The remaining 5% are slower — explain why those might be slower."},
+  {id:54,tag:"sys",d:"m",text:"What does 'zero failures' mean in your benchmark — HTTP 5xx errors, timeouts, or something else?",hint:"Be precise. Zero dropped connections? Zero 5xx responses? Zero incorrect results?"},
+  {id:55,tag:"sys",d:"m",text:"How would you horizontally scale your worker pool if 200 concurrent users became 2000?",hint:"Add more worker instances, increase Redis queue consumers, use a load balancer in front of the API."},
+  {id:56,tag:"sys",d:"m",text:"What is fault tolerance and how did you build it into your worker pool?",hint:"If one worker dies, the other three keep processing. How does a dead worker get restarted?"},
+  {id:57,tag:"sys",d:"m",text:"What monitoring would you add to this system in production — what metrics matter most?",hint:"Queue depth, worker utilization, P95 latency, error rate, Docker container spawn time."},
+  {id:58,tag:"sys",d:"h",text:"How would you support multiple programming languages — Python, Java, C++ — in the same system?",hint:"Per-language Docker images, language field in the submission, worker routes to the correct image."},
+  {id:59,tag:"sys",d:"h",text:"What is backpressure and how would you implement it so your API doesn't accept more jobs than workers can handle?",hint:"Queue depth threshold → return 503 when queue exceeds a limit instead of unbounded growth."},
+  {id:60,tag:"sys",d:"h",text:"If you had to redesign this system from scratch knowing what you know now, what would you change and why?",hint:"Pre-warmed container pool, job acknowledgement in Redis, persistent queue with Kafka, structured logging from day one."},
+];
+
+const tagLabels={arch:"Architecture",redis:"Redis & Queuing",docker:"Docker & Sandbox",go:"Go Concurrency",pg:"PostgreSQL",sec:"Security & Auth",sys:"Scalability & Ops"};
+const tagClasses={arch:"tag-arch",redis:"tag-redis",docker:"tag-docker",go:"tag-go",pg:"tag-pg",sec:"tag-sec",sys:"tag-sys"};
+const dLabels={e:"Easy",m:"Medium",h:"Hard"};
+const dClasses={e:"d-e",m:"d-m",h:"d-h"};
+
+let done=new Set();
+let activeTag="all";
+
+function buildFilters(){
+  const f=document.getElementById("filters");
+  const tags=["all",...Object.keys(tagLabels)];
+  f.innerHTML=tags.map(t=>`<span class="pill ${t==="all"?"active":""}" onclick="setTag('${t}')">${t==="all"?"All":tagLabels[t]}</span>`).join("");
+}
+
+function setTag(t){
+  activeTag=t;
+  document.querySelectorAll(".pill").forEach(p=>{
+    const label=t==="all"?"All":tagLabels[t];
+    p.classList.toggle("active",p.textContent===label||(t==="all"&&p.textContent==="All"));
+  });
+  render();
+}
+
+function toggle(id){
+  done.has(id)?done.delete(id):done.add(id);
+  updateStats();
+  render();
+}
+
+function updateStats(){
+  document.getElementById("s-done").textContent=done.size;
+  document.getElementById("s-left").textContent=60-done.size;
+  document.getElementById("s-pct").textContent=Math.round(done.size/60*100)+"%";
+}
+
+function render(){
+  const q=document.getElementById("search").value.toLowerCase();
+  const filtered=Q.filter(x=>{
+    if(activeTag!=="all"&&x.tag!==activeTag)return false;
+    if(q&&!x.text.toLowerCase().includes(q)&&!x.hint.toLowerCase().includes(q))return false;
+    return true;
+  });
+  document.getElementById("s-show").textContent=filtered.length;
+  const list=document.getElementById("qlist");
+  if(!filtered.length){list.innerHTML='<div class="empty">No questions match.</div>';return;}
+  list.innerHTML=filtered.map(x=>`
+    <div class="q-card ${done.has(x.id)?"done":""}" onclick="toggle(${x.id})">
+      <div class="check">${done.has(x.id)?"✓":""}</div>
+      <div class="q-body">
+        <div class="q-text">${x.text}</div>
+        <div class="q-hint">${x.hint}</div>
+      </div>
+      <div class="q-meta">
+        <span class="q-tag ${tagClasses[x.tag]}">${tagLabels[x.tag]}</span>
+        <span class="d-label ${dClasses[x.d]}">${dLabels[x.d]}</span>
+        <span class="q-num">#${x.id}</span>
+      </div>
+    </div>
+  `).join("");
+}
+
+buildFilters();
+render();
+</script>

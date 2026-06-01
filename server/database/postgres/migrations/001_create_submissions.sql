@@ -1,5 +1,5 @@
 CREATE TABLE submissions (
-    submission_id SERIAL PRIMARY KEY,
+    submission_id TEXT PRIMARY KEY,
     user_id TEXT,
     problem_id TEXT,
     code TEXT,
