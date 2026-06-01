@@ -19,6 +19,13 @@ services:
     volumes:
       - redisdata:/data
 
+  piper-tts:
+    image: rhasspy/piper-http-server
+    command: ["--model", "en_US-lessac-medium"]
+    ports:
+      - "5002:5000"
+    restart: unless-stopped
+
   ai-service:
     build:
       context: ./ai-service
@@ -26,6 +33,8 @@ services:
       - "50051:50051"
     env_file:
       - .env
+    environment:
+      - PIPER_TTS_URL=http://piper-tts:5000
 
   backend:
     build:

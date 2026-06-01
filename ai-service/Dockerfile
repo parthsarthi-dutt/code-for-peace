@@ -12,4 +12,5 @@ RUN python -m grpc_tools.protoc -I./proto --python_out=./proto --grpc_python_out
 
 EXPOSE 50051
 
-CMD ["python", "server.py"]
+# Make Python unbuffered so we can actually see print() logs in docker
+CMD ["python", "-u", "server.py"]
