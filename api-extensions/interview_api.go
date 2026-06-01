@@ -1,11 +1,13 @@
 package apiextensions
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/parthsarthi-dutt/online-judge/server/auth"
@@ -446,20 +448,46 @@ If the transcript shows that the candidate exited early, did not provide any sub
 
 Format your response using Markdown. Use appropriate headings (e.g. ## Performance Summary, ### Strengths), bold text for emphasis, and bullet points. Keep it professional and constructive.`
 
-	// Call the LLM directly via HTTP (same as AI service does)
-	client, conn, err := getInterviewAIClient()
-	if err != nil {
-		return "Unable to generate feedback at this time."
+	// Call the LLM directly via HTTP to Groq API
+	apiKey := os.Getenv("GROQ_API_KEY")
+	if apiKey == "" {
+		return "Unable to generate feedback at this time (Missing configuration)."
 	}
-	defer conn.Close()
 
-	resp, err := client.GenerateHint(context.Background(), &evaluation.HintRequest{
-		ProblemStatement: prompt,
-		UserCode:         "",
-		EditorialCode:    "",
-	})
+	payload := map[string]interface{}{
+		"model": "llama-3.1-8b-instant",
+		"messages": []map[string]string{
+			{"role": "user", "content": prompt},
+		},
+		"temperature": 0.7,
+	}
+	payloadBytes, _ := json.Marshal(payload)
+	req, err := http.NewRequest("POST", "https://api.groq.com/openai/v1/chat/completions", bytes.NewBuffer(payloadBytes))
 	if err != nil {
 		return "Unable to generate feedback at this time."
 	}
-	return resp.Hint
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "Unable to generate feedback at this time."
+	}
+	defer resp.Body.Close()
+
+	var res map[string]interface{}
+	json.NewDecoder(resp.Body).Decode(&res)
+
+	if choices, ok := res["choices"].([]interface{}); ok && len(choices) > 0 {
+		if choice, ok := choices[0].(map[string]interface{}); ok {
+			if message, ok := choice["message"].(map[string]interface{}); ok {
+				if content, ok := message["content"].(string); ok {
+					return content
+				}
+			}
+		}
+	}
+
+	return "Unable to parse feedback response."
 }
