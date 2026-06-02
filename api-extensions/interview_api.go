@@ -192,6 +192,7 @@ func ProcessInterviewResponseHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
+	slog.Info("Received interview response payload", slog.String("code_excerpt", payload.Code[:min(50, len(payload.Code))]))
 
 	// Get interview from DB
 	var level string
