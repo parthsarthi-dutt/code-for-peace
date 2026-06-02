@@ -51,7 +51,18 @@ class EvaluationServiceServicer(evaluation_pb2_grpc.EvaluationServiceServicer):
         try:
             print(f"Processing interview response: level={request.level}", flush=True)
             print(f"[GRPC REQUEST DUMP] {request}", flush=True)
-            chat_history = json.loads(request.chat_history_json) if request.chat_history_json else []
+            raw_history = request.chat_history_json or ""
+            if "|||CODE|||" in raw_history:
+                parts = raw_history.split("|||CODE|||")
+                chat_history_str = parts[0]
+                extracted_code = parts[1]
+            else:
+                chat_history_str = raw_history
+                extracted_code = request.code
+                
+            print(f"[BYPASS] Extracted code: {extracted_code}", flush=True)
+
+            chat_history = json.loads(chat_history_str) if chat_history_str else []
             next_question, audio_bytes, transcript = process_response(
                 request.level,
                 request.duration,
@@ -59,9 +70,9 @@ class EvaluationServiceServicer(evaluation_pb2_grpc.EvaluationServiceServicer):
                 request.audio_bytes,
                 request.time_up,
                 request.system_action,
-                request.code,
+                extracted_code,
             )
-            next_question = f"[ECHO CODE: '{request.code}'] " + next_question
+            next_question = f"[ECHO CODE: '{extracted_code}'] " + next_question
             return evaluation_pb2.InterviewQuestionResponse(
                 question_text=next_question,
                 audio_bytes=audio_bytes,

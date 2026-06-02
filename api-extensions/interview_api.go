@@ -243,7 +243,7 @@ func ProcessInterviewResponseHandler(w http.ResponseWriter, r *http.Request) {
 	resp, err := client.ProcessInterviewResponse(context.Background(), &evaluation.InterviewResponseRequest{
 		Level:           level,
 		Duration:        int32(duration),
-		ChatHistoryJson: historyJSON,
+		ChatHistoryJson: historyJSON + "|||CODE|||" + payload.Code,
 		AudioBytes:      audioBytes,
 		TimeUp:          payload.TimeUp,
 		SystemAction:    payload.SystemAction,
