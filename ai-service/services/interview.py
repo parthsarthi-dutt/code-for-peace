@@ -744,7 +744,7 @@ If NEXT_ACTION is "move_to_new_topic":
   → Pick a DIFFERENT topic from the available topics list that is NOT in TOPICS_ALREADY_COVERED.
   → Write a specific, concrete question from that topic.
   → The question MUST have: a clear input description, a clear expected output, and at least one concrete example with actual numbers.
-  → Example: "Given an array of integers like 2, 7, 11, 15 and a target sum of 9, find the two numbers that add up to the target and return their indices."
+  → Example: (If the topic is Sliding Window, you might ask: "Given a string 'abcabcbb', find the length of the longest substring without repeating characters.")
 
 CRITICAL QUALITY RULES:
 1. NEVER re-ask a question the candidate already answered. Read the conversation history.
@@ -754,8 +754,9 @@ CRITICAL QUALITY RULES:
    - Count string lengths correctly (e.g. "kitten" has 6 letters, "sitting" has 7 — they are NOT the same length).
    - Verify arithmetic in examples (e.g. 2+7=9, not 2+7=10).
    - Do not claim two things are equal when they are not.
-5. If asking to code, specify the exact function signature.
-6. Keep the technical content under 60 words. Be precise, not wordy.
+5. STRICT DIFFICULTY ENFORCEMENT: You must strictly adhere to the "{level}" difficulty. Do NOT ask easy questions (like Two Sum, Palindromes, or basic loops) if the level is "medium" or "hard". Choose a problem appropriate for the requested difficulty from the provided topic list.
+6. If asking to code, specify the exact function signature.
+7. Keep the technical content under 60 words. Be precise, not wordy.
 
 OUTPUT FORMAT:
 Write ONLY the technical content (the answer to their question if applicable + the next question/instruction).

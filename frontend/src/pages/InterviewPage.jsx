@@ -79,6 +79,7 @@ export default function InterviewPage() {
   const recordingTimerRef = useRef(null);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const audioRef = useRef(null);
+  const [includeCode, setIncludeCode] = useState(true);
 
   // Idle tracking
   const [silentStrikes, setSilentStrikes] = useState(0);
@@ -397,7 +398,8 @@ export default function InterviewPage() {
       const audioBase64 = await base64Promise;
 
       const isTimeUp = timeLeft <= 60; // Conclude if less than a minute left
-      const data = await sendInterviewResponse(interviewId, audioBase64, code, isTimeUp);
+      const codeToSend = includeCode ? code : "";
+      const data = await sendInterviewResponse(interviewId, audioBase64, codeToSend, isTimeUp);
 
       let qt = data.question_text;
       let outOfContext = false;
@@ -669,14 +671,25 @@ export default function InterviewPage() {
                 )}
               </div>
 
-              <button
-                className="send-btn"
-                disabled={!audioBlob || isProcessing}
-                onClick={handleSendResponse}
-              >
-                <Send size={16} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-                {isProcessing ? 'Processing...' : 'Send'}
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <label className="include-code-label" style={{ display: 'flex', alignItems: 'center', fontSize: '13px', color: 'var(--text-secondary)', cursor: 'pointer', userSelect: 'none' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={includeCode} 
+                    onChange={(e) => setIncludeCode(e.target.checked)}
+                    style={{ marginRight: '6px', cursor: 'pointer' }}
+                  />
+                  Attach Code
+                </label>
+                <button
+                  className="send-btn"
+                  disabled={!audioBlob || isProcessing}
+                  onClick={handleSendResponse}
+                >
+                  <Send size={16} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+                  {isProcessing ? 'Processing...' : 'Send'}
+                </button>
+              </div>
             </div>
           </div>
           <div className="interview-editor-container" style={{ display: 'flex', flexDirection: 'column', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-color)', height: 'calc(100vh - 120px)' }}>
@@ -690,9 +703,6 @@ export default function InterviewPage() {
               value={code}
               onChange={(value) => {
                 setCode(value);
-                if (!isRecording && !isStarting && interviewStatus === 'active') {
-                  startRecording().catch(console.error);
-                }
               }}
               options={{
                 minimap: { enabled: false },
