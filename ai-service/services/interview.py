@@ -10,6 +10,7 @@ AI Interview Service
 import os
 import json
 import time
+import random
 import requests
 from dotenv import load_dotenv
 from urllib.parse import quote_plus
@@ -431,9 +432,12 @@ def _synthesize_speech(text: str) -> bytes:
 
 def _build_topic_context(level: str) -> str:
     """Build a concise topic list string with example questions for the prompt."""
-    pool = TOPIC_POOLS.get(level, TOPIC_POOLS["easy"])
+    pool = list(TOPIC_POOLS.get(level, TOPIC_POOLS["easy"]))
+    random.shuffle(pool)
+    
+    # Take only the first 3 topics so the LLM has a diverse but concise selection
     lines = []
-    for item in pool:
+    for item in pool[:3]:
         examples = "; ".join(item["example_questions"][:2])
         lines.append(f"- {item['topic']} (e.g. {examples})")
     return "\n".join(lines)
@@ -490,9 +494,14 @@ def process_response(
         user_transcript = "[Candidate remained silent]"
     else:
         user_transcript = _transcribe_audio(audio_bytes)
-        if not user_transcript.strip():
+        # Only fallback if BOTH transcript and code are empty
+        if not user_transcript.strip() and not code_text.strip():
             fallback = "I did not quite catch that. Could you say that again, please?"
             return fallback, _synthesize_speech(fallback), ""
+        
+        # If they didn't speak but they submitted code, give a default transcript
+        if not user_transcript.strip() and code_text.strip():
+            user_transcript = "[Candidate submitted code without speaking]"
 
     # ── Step 2: Build conversation history string ────────────────────────
     conversation = ""
