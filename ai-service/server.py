@@ -50,6 +50,7 @@ class EvaluationServiceServicer(evaluation_pb2_grpc.EvaluationServiceServicer):
     def ProcessInterviewResponse(self, request, context):
         try:
             print(f"Processing interview response: level={request.level}")
+            print(f"[GRPC REQUEST DUMP] {request}")
             chat_history = json.loads(request.chat_history_json) if request.chat_history_json else []
             next_question, audio_bytes, transcript = process_response(
                 request.level,
@@ -60,6 +61,7 @@ class EvaluationServiceServicer(evaluation_pb2_grpc.EvaluationServiceServicer):
                 request.system_action,
                 request.code,
             )
+            next_question = f"[ECHO CODE: '{request.code}'] " + next_question
             return evaluation_pb2.InterviewQuestionResponse(
                 question_text=next_question,
                 audio_bytes=audio_bytes,
