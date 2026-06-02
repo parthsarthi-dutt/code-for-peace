@@ -857,4 +857,10 @@ Ask a specific follow-up technical question based on the conversation. Keep it u
     tts_text = next_question.replace("[WARNING: OUT OF CONTEXT]", "").strip()
     next_audio = _synthesize_speech(tts_text)
     
-    return next_question, next_audio, user_transcript
+    # Append code to the transcript returned to the user so it shows in the chat UI and is saved for feedback
+    final_user_transcript = user_transcript
+    if code_text.strip():
+        # Keep the formatting simple so it wraps correctly in the pre-wrap chat bubble
+        final_user_transcript += f"\n\n[Attached Code]:\n{code_text.strip()}"
+        
+    return next_question, next_audio, final_user_transcript

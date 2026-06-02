@@ -20,7 +20,7 @@ def generate_content(prompt: str, max_retries: int = 3) -> str:
             "Content-Type": "application/json"
         }
         payload = {
-            "model": "llama-3.1-8b-instant",
+            "model": "llama-3.3-70b-versatile",
             "messages": [{"role": "user", "content": prompt}]
         }
         
