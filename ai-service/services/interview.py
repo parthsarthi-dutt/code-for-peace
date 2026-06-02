@@ -22,7 +22,7 @@ from langchain_core.output_parsers import StrOutputParser
 load_dotenv()
 
 import io
-from gtts import gTTS
+from deepgram import DeepgramClient, SpeakOptions
 
 # ─── Topic pools per difficulty ─────────────────────
 # Easy  → TCS / Infosys / Wipro / Accenture / entry-level product companies
@@ -418,15 +418,34 @@ def _transcribe_audio(audio_bytes: bytes) -> str:
     raise Exception("All Groq Whisper API keys failed.")
 
 
-def _synthesize_speech(text: str) -> bytes:
-    """Use gTTS for Text-to-Speech."""
+def _synthesize_speech(text: str, level: str = "easy") -> bytes:
+    """Use Deepgram Aura for Text-to-Speech with dynamic voices based on difficulty level."""
     try:
-        tts = gTTS(text=text, lang='en', tld='com')
-        fp = io.BytesIO()
-        tts.write_to_fp(fp)
-        return fp.getvalue()
+        deepgram = DeepgramClient()
+        
+        # Map levels to specific high-quality Deepgram voices
+        voice_map = {
+            "easy": "aura-asteria-en",   # Priya (Warm Female)
+            "medium": "aura-orion-en",   # Arjun (Professional Male)
+            "hard": "aura-helios-en",    # Rohan (Sharp UK Male)
+        }
+        
+        model_name = voice_map.get(level, "aura-asteria-en")
+        
+        options = SpeakOptions(
+            model=model_name,
+        )
+        
+        response = deepgram.speak.rest.v("1").stream_text(
+            {"text": text},
+            options
+        )
+        
+        audio_bytes = response.read()
+        return audio_bytes
+        
     except Exception as e:
-        print(f"gTTS error: {e}")
+        print(f"Deepgram TTS error: {e}")
         return b""
 
 
@@ -469,7 +488,7 @@ Rules you must follow:
 9. Never use brackets or placeholder text like [Name]."""
 
     question_text = _call_llm(prompt)
-    audio_bytes = _synthesize_speech(question_text)
+    audio_bytes = _synthesize_speech(question_text, level)
     return question_text, audio_bytes
 
 
@@ -497,7 +516,7 @@ def process_response(
         # Only fallback if BOTH transcript and code are empty
         if not user_transcript.strip() and not code_text.strip():
             fallback = "I did not quite catch that. Could you say that again, please?"
-            return fallback, _synthesize_speech(fallback), ""
+            return fallback, _synthesize_speech(fallback, level), ""
         
         # If they didn't speak but they submitted code, give a default transcript
         if not user_transcript.strip() and code_text.strip():
@@ -863,7 +882,7 @@ Ask a specific follow-up technical question based on the conversation. Keep it u
     
     # Strip warning tag for TTS if it exists
     tts_text = next_question.replace("[WARNING: OUT OF CONTEXT]", "").strip()
-    next_audio = _synthesize_speech(tts_text)
+    next_audio = _synthesize_speech(tts_text, level)
     
     # Append code to the transcript returned to the user so it shows in the chat UI and is saved for feedback
     final_user_transcript = user_transcript
