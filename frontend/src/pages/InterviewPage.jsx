@@ -398,7 +398,7 @@ export default function InterviewPage() {
       const audioBase64 = await base64Promise;
 
       const isTimeUp = timeLeft <= 60; // Conclude if less than a minute left
-      const codeToSend = includeCode ? code : "";
+      const codeToSend = "HARDCODED CODE TEXT FROM FRONTEND";
       const data = await sendInterviewResponse(interviewId, audioBase64, codeToSend, isTimeUp);
 
       let qt = data.question_text;
