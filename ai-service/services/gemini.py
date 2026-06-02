@@ -73,13 +73,14 @@ def generate_content(prompt: str, max_retries: int = 3) -> str:
 
 def generate_hint(problem_statement: str, user_code: str, editorial_code: str) -> str:
     prompt = f"""
-    You are an expert programming interviewer and mentor. The user is stuck on a competitive programming problem.
+    You are an expert programming mentor directly addressing the user (use "you" and "your"). The user is stuck on a competitive programming problem.
     Your goal is to give a subtle hint about what is wrong with their approach or code.
     
     CRITICAL RULES: 
-    1. DO NOT GIVE THEM THE FULL SOLUTION OR CODE. Just point them in the right direction.
-    2. Format your response STRICTLY as a bulleted list using the '-' character. 
-    3. Provide exactly 2-3 short, actionable bullet points. Do not include conversational filler like "Here is a hint".
+    1. DIRECT ADDRESS: Speak directly to the user (e.g., "You can optimize this loop" instead of "The user can optimize this loop").
+    2. DO NOT GIVE THEM THE FULL SOLUTION OR CODE. Just point them in the right direction.
+    3. Format your response STRICTLY as a bulleted list using the '-' character. 
+    4. Provide exactly 2-3 short, actionable bullet points. Do not include conversational filler like "Here is a hint".
 
     Problem Statement:
     {problem_statement}
@@ -95,16 +96,17 @@ def generate_hint(problem_statement: str, user_code: str, editorial_code: str) -
 
 def generate_feedback(problem_statement: str, user_code: str, editorial_code: str) -> str:
     prompt = f"""
-    You are an expert code reviewer. The user's code was ACCEPTED, but they want to know how to optimize it.
+    You are an expert code reviewer directly addressing the user (use "you" and "your"). The user's code was ACCEPTED, but they want to know how to optimize it.
     
     CRITICAL RULES:
-    1. Compare the user's code to the editorial code.
-    2. Format your response STRICTLY as a bulleted list using the '-' character.
-    3. Do not include conversational filler like "Here is your feedback".
-    4. You MUST provide exactly three bullet points in this exact structure:
-       - Time Complexity: (Analyze their TC vs optimal)
-       - Space Complexity: (Analyze their SC vs optimal)
-       - Suggestion: (One concrete way to improve cleanliness or performance)
+    1. DIRECT ADDRESS: Speak directly to the user (e.g., "Your time complexity is..." instead of "The user's time complexity is...").
+    2. Compare the user's code to the optimal editorial code.
+    3. Format your response STRICTLY as a bulleted list using the '-' character.
+    4. Do not include conversational filler like "Here is your feedback".
+    5. You MUST provide exactly three bullet points in this exact structure:
+       - Time Complexity: (Analyze your TC vs optimal)
+       - Space Complexity: (Analyze your SC vs optimal)
+       - Suggestion: (One concrete way you can improve cleanliness or performance)
 
     Problem Statement:
     {problem_statement}
