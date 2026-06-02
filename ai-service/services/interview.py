@@ -14,6 +14,10 @@ import requests
 from dotenv import load_dotenv
 from urllib.parse import quote_plus
 
+from langchain_groq import ChatGroq
+from langchain_core.prompts import PromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+
 load_dotenv()
 
 import io
@@ -514,6 +518,8 @@ def process_response(
 
     # ── Step 3: Choose the right prompt based on situation ───────────────
 
+    use_langchain = False
+
     # --- Idle nudge: candidate silent for ~1 minute ---
     if system_action == "idle_nudge":
         code_context = ""
@@ -571,50 +577,246 @@ Rules:
 - No markdown. No bullet points. No code blocks.
 - Do not ask any new technical questions."""
 
-    # --- Normal flow: evaluate and ask next question ---
+    # --- Normal flow: evaluate and ask next question (LANGCHAIN WORKFLOW) ---
     else:
-        prompt = f"""You are {persona['name']}, a senior engineer at {persona['company_vibe']}.
-You are {persona['style']}.
-You are conducting a {duration}-minute technical coding interview.
+        use_langchain = True
 
-Available topics and example questions you can draw from:
+    if not use_langchain:
+        next_question = _call_llm(prompt)
+    else:
+        try:
+            groq_keys = _get_api_keys("GROQ_API_KEY")
+            if not groq_keys:
+                raise ValueError("No GROQ keys available")
+
+            llm = ChatGroq(api_key=groq_keys[0], model="llama-3.1-8b-instant", temperature=0.6)
+
+            # Build last-2-turns snippet for the speaker (keeps it focused)
+            recent_turns = ""
+            for entry in chat_history[-4:]:
+                r = entry.get("role", "unknown")
+                t = entry.get("text", "")
+                recent_turns += f"{'Interviewer' if r == 'interviewer' else 'Candidate'}: {t}\n"
+            recent_turns += f"Candidate: {user_transcript}\n"
+
+            # ════════════════════════════════════════════════════════════════
+            # NODE 1 — CONTEXT GUARD
+            # Detects off-topic, inappropriate, or evasive responses.
+            # Short-circuits the chain if the candidate goes off-track.
+            # ════════════════════════════════════════════════════════════════
+            guard_prompt = PromptTemplate.from_template(
+"""You are an interview conduct monitor. Your ONLY job is to decide whether the candidate's latest message is relevant to a technical coding interview.
+
+Latest candidate message:
+"{user_transcript}"
+
+Conversation so far (last few turns):
+{recent_turns}
+
+Classification rules:
+- If the candidate is discussing code, algorithms, data structures, complexity, asking clarifying questions about the problem, requesting to code, or doing anything related to the technical interview → respond with exactly: ON_TOPIC
+- If the candidate is making small talk that naturally fits (e.g. "thank you", "sure", "got it") → respond with exactly: ON_TOPIC
+- If the candidate is talking about completely unrelated subjects (movies, politics, personal gossip, asking the interviewer personal questions, trying to change the subject away from the interview) → respond with exactly: OFF_TOPIC
+- If the candidate is being rude, abusive, or deliberately evasive → respond with exactly: OFF_TOPIC
+
+Respond with ONLY one of these two words: ON_TOPIC or OFF_TOPIC
+Do not explain. Do not add any other text.""")
+
+            guard_chain = guard_prompt | llm | StrOutputParser()
+            guard_result = guard_chain.invoke({
+                "user_transcript": user_transcript,
+                "recent_turns": recent_turns,
+            }).strip().upper()
+
+            if "OFF_TOPIC" in guard_result:
+                next_question = "[WARNING: OUT OF CONTEXT] I appreciate the enthusiasm, but let's stay focused on the technical discussion. We have limited time and I want to make sure we cover the important topics. Can you bring your attention back to the problem we were discussing?"
+            else:
+
+                # ════════════════════════════════════════════════════════════
+                # NODE 2 — ANSWER ANALYZER
+                # Deep evaluation of the candidate's technical response.
+                # Produces structured signal for the Question Architect.
+                # ════════════════════════════════════════════════════════════
+                analyzer_prompt = PromptTemplate.from_template(
+"""You are a senior technical interview evaluator at a top tech company. You are evaluating a "{level}" difficulty coding interview.
+
+Full conversation transcript:
+<transcript>
+{conversation}
+</transcript>
+
+Candidate's code in editor (may be empty):
+<code>
+{code_text}
+</code>
+
+Your task: Analyze the candidate's LATEST response thoroughly.
+
+Evaluation criteria for "{level}" level:
+- Easy: Accept brute force if logic is clean. O(n^2) is fine. Focus on whether they understand the problem.
+- Medium: Expect optimized approaches. Brute force gets partial credit. They must discuss time/space complexity.
+- Hard: Expect optimal solutions with correct complexity analysis. Test edge cases and scalability.
+
+Produce your analysis in EXACTLY this format (fill in each field):
+
+CORRECTNESS: [correct / partially_correct / incorrect / no_substantive_answer]
+DEPTH: [surface_level / moderate / deep]
+WHAT_THEY_GOT_RIGHT: [One specific observation about what was good in their answer, or "Nothing yet" if they haven't given a technical answer]
+WHAT_THEY_MISSED: [One specific gap, mistake, or missing consideration, or "N/A" if their answer was complete]
+CANDIDATE_ASKED_QUESTION: [yes / no — did the candidate ask a clarifying question that needs answering?]
+CANDIDATE_QUESTION: [Quote their question if yes, otherwise "N/A"]
+NEXT_ACTION: [Choose exactly one: ask_follow_up_on_same_topic / probe_deeper_on_edge_cases / ask_to_write_code / move_to_new_topic / answer_their_question_then_continue]
+
+Be precise. Do not write prose. Do not add explanations beyond the fields above.""")
+
+                analyzer_chain = analyzer_prompt | llm | StrOutputParser()
+                analysis = analyzer_chain.invoke({
+                    "level": level,
+                    "conversation": conversation,
+                    "code_text": code_text if code_text.strip() else "(no code written yet)",
+                })
+
+                # ════════════════════════════════════════════════════════════
+                # NODE 3 — QUESTION ARCHITECT
+                # Designs a precise, specific, solvable technical question.
+                # This is the core quality node — no vague questions allowed.
+                # ════════════════════════════════════════════════════════════
+                architect_prompt = PromptTemplate.from_template(
+"""You are the Question Architect for a "{level}" difficulty coding interview lasting {duration} minutes.
+
+ANALYSIS OF CANDIDATE'S LAST ANSWER:
+{analysis}
+
+INTERVIEW CONTEXT:
+{turn_logic}
+
+AVAILABLE TOPIC AREAS AND EXAMPLE QUESTIONS:
 {topic_context}
 
-<conversation_history>
+CONVERSATION SO FAR:
+<history>
 {conversation}
-</conversation_history>
+</history>
 
-Your task: respond as the interviewer in the next turn.
+YOUR TASK — Design the next interviewer action based on the analysis:
 
-Interview Strategy & Flow:
-1. Always ask more conceptual questions and explore the candidate's thinking first.
-2. Only ask them to write code if you specifically want to verify their coding skills after discussing the approach.
-3. If the interview is {duration} minutes (e.g. 15 min), ask for a SMALL code snippet if you ask them to code.
-4. If it's a 30 min interview, ask for a mid-sized code snippet. AVOID very tough or excessively long implementations as time is limited.
+If NEXT_ACTION is "answer_their_question_then_continue":
+  → Write a brief, direct answer to the candidate's question (1-2 sentences max).
+  → Then write a follow-up question or instruction.
 
-Use this decision logic:
-{turn_logic}
-- If the candidate asks a clarifying question (e.g. "Should I code this now?", "Can I use a helper?"), ANSWER THEM DIRECTLY and concisely first. Do not ignore their question.
-- If the candidate tries to go completely out of context (e.g. asking unrelated questions, talking about movies/politics, avoiding the interview), DO NOT engage. You MUST prepend your response EXACTLY with `[WARNING: OUT OF CONTEXT]` and strongly warn them to stay on topic or the interview will end.
-- If their technical answer is strong and correct: acknowledge it specifically, and either ask them to code the approach (if not done yet) or move to a follow-up question.
-- If their technical answer is partially correct: point out the gap clearly and ask a targeted follow-up.
-- If their technical answer is wrong: correct them briefly, give a hint, and ask a simpler version.
-- Avoid repetitive filler phrases. Be direct and analytical.
+If NEXT_ACTION is "ask_follow_up_on_same_topic":
+  → Reference WHAT_THEY_MISSED from the analysis.
+  → Ask a targeted follow-up that probes the specific gap.
+  → Example: "What happens if the array contains negative numbers? How does that affect your sliding window?"
 
-Evaluation quality bar (use this internally to judge the answer):
-- Easy level: expect correct brute force or basic optimized approach. O(n^2) is acceptable. Clean logic matters.
-- Medium level: expect an optimized approach. Brute force gets partial credit. Must explain complexity.
-- Hard level: expect the optimal solution with correct complexity analysis. Expect follow-up on edge cases and scalability.
+If NEXT_ACTION is "probe_deeper_on_edge_cases":
+  → Pick a specific edge case relevant to the current problem.
+  → Ask them to handle it or explain their approach for it.
+  → Example: "What if two nodes are at the same depth? How does your LCA algorithm handle that?"
 
-Natural speech rules (critical — this will be read by a TTS engine):
-- Under 80 words total.
-- Short sentences. Use commas and periods to create natural spoken pauses.
-- No markdown, no bullet points, no code blocks, no asterisks, no backticks.
-- Do not say "Let's move on" or "Great question" or robotic filler phrases.
-- Do not number questions. Ask ONE question at a time.
-- Sound like a real person who is genuinely curious about how the candidate thinks."""
+If NEXT_ACTION is "ask_to_write_code":
+  → Tell them to implement their discussed approach in code.
+  → Specify the function signature if possible (name, parameters, return type).
+  → For {duration}-minute interviews: keep scope small. Ask for the core function only, not boilerplate.
 
-    next_question = _call_llm(prompt)
+If NEXT_ACTION is "move_to_new_topic":
+  → Pick a DIFFERENT topic from the available topics list that has NOT been discussed yet.
+  → Write a specific, concrete question from that topic — not a vague "tell me about X."
+  → The question MUST have a clear input, a clear expected output, and be solvable.
+  → Example: "Given a string of parentheses, brackets, and braces, write a function that returns true if the string is valid. For instance, the input open-paren, open-bracket, close-bracket, close-paren should return true."
+
+IMPORTANT RULES:
+1. NEVER ask a question that was already asked in the conversation history. Check the history carefully.
+2. NEVER ask vague questions like "tell me about arrays" or "how would you approach this."
+3. Every question MUST be a specific, well-defined problem with clear inputs and outputs.
+4. If asking to code, specify the function name and parameters.
+5. Keep the technical content under 60 words. Be precise, not wordy.
+
+OUTPUT FORMAT:
+Write ONLY the technical content (the answer to their question if applicable + the next question/instruction).
+Do not add conversational pleasantries, greetings, or filler.
+Do not use markdown, asterisks, or code blocks.""")
+
+                architect_chain = architect_prompt | llm | StrOutputParser()
+                question_content = architect_chain.invoke({
+                    "level": level,
+                    "duration": duration,
+                    "analysis": analysis,
+                    "turn_logic": turn_logic,
+                    "topic_context": topic_context,
+                    "conversation": conversation,
+                })
+
+                # ════════════════════════════════════════════════════════════
+                # NODE 4 — PERSONA SPEAKER
+                # Converts raw technical content into natural spoken dialogue.
+                # This is what the candidate actually hears via TTS.
+                # ════════════════════════════════════════════════════════════
+                speaker_prompt = PromptTemplate.from_template(
+"""You are {persona_name}, a senior engineer at {persona_company}.
+Your interviewing style: {persona_style}.
+Pacing guidance: {persona_pacing}
+
+You are in a live {duration}-minute coding interview. You just received the candidate's response and now you need to deliver your next turn.
+
+ANALYSIS SUMMARY (use this to react to their answer):
+{analysis}
+
+TECHNICAL CONTENT TO DELIVER (the question architect prepared this):
+{question_content}
+
+WHAT THE CANDIDATE JUST SAID (last 2 turns for context):
+{recent_turns}
+
+YOUR TASK — Speak naturally as {persona_name}:
+
+1. REACT first (1-2 sentences max):
+   - If their answer was correct: give brief, specific praise referencing something concrete they said. Do NOT say generic things like "great job" or "nice."
+   - If partially correct: acknowledge what was right, then naturally transition to the gap.
+   - If incorrect: gently point out the issue without being harsh.
+   - If they asked a question: answer it directly and concisely.
+   - If this is the first technical turn: skip the reaction, jump straight to the question.
+
+2. Then DELIVER the technical content naturally:
+   - Rephrase the question architect's content into your own voice.
+   - Make it sound like you are thinking of the question on the spot.
+   - Use concrete examples when stating problems (e.g. "say you have an array like 3, 1, 4, 1, 5").
+
+CRITICAL SPEECH RULES (this will be read aloud by a TTS engine):
+- MAXIMUM 80 words total. Shorter is better.
+- Use short sentences. End sentences with periods, not commas strung together.
+- Use commas for natural breathing pauses within sentences.
+- NEVER use markdown, bullet points, numbered lists, asterisks, backticks, or code blocks.
+- NEVER say "Let's move on", "Great question", "That's a good point", or any robotic filler.
+- Do NOT number your questions. Ask ONE thing at a time.
+- Sound like a real human having a technical conversation, not reading from a script.
+- Spell out symbols: say "open paren" not "(", say "n squared" not "n^2".""")
+
+                speaker_chain = speaker_prompt | llm | StrOutputParser()
+                next_question = speaker_chain.invoke({
+                    "persona_name": persona["name"],
+                    "persona_company": persona.get("company_vibe", "a top tech company"),
+                    "persona_style": persona["style"],
+                    "persona_pacing": persona.get("pacing", "Keep a steady pace."),
+                    "duration": duration,
+                    "analysis": analysis,
+                    "question_content": question_content,
+                    "recent_turns": recent_turns,
+                })
+
+        except Exception as e:
+            print(f"LangChain chain error: {e}")
+            import traceback
+            traceback.print_exc()
+            # Fallback to a simple direct LLM call
+            fallback_prompt = f"""You are {persona['name']}, a senior engineer at {persona.get('company_vibe', 'a top tech company')}.
+You are conducting a {duration}-minute coding interview at "{level}" difficulty.
+
+Conversation so far:
+{conversation}
+
+Ask a specific follow-up technical question based on the conversation. Keep it under 60 words. No markdown. Natural spoken sentences only."""
+            next_question = _call_llm(fallback_prompt)
     
     # Strip warning tag for TTS if it exists
     tts_text = next_question.replace("[WARNING: OUT OF CONTEXT]", "").strip()
