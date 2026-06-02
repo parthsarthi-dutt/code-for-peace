@@ -631,6 +631,7 @@ Conversation so far (last few turns):
 Classification rules:
 - If the candidate is discussing code, algorithms, data structures, complexity, asking clarifying questions about the problem, requesting to code, or doing anything related to the technical interview → respond with exactly: ON_TOPIC
 - If the candidate is making small talk that naturally fits (e.g. "thank you", "sure", "got it") → respond with exactly: ON_TOPIC
+- If the candidate states they do not know the answer, asks for a hint, or expresses difficulty with the problem → respond with exactly: ON_TOPIC
 - If the candidate is talking about completely unrelated subjects (movies, politics, personal gossip, asking the interviewer personal questions, trying to change the subject away from the interview) → respond with exactly: OFF_TOPIC
 - If the candidate is being rude, abusive, or deliberately evasive → respond with exactly: OFF_TOPIC
 
