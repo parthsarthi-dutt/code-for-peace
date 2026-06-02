@@ -871,7 +871,5 @@ Ask a specific follow-up technical question based on the conversation. Keep it u
     if code_text.strip():
         # Keep the formatting simple so it wraps correctly in the pre-wrap chat bubble
         final_user_transcript += f"\n\n[Attached Code]:\n{code_text.strip()}"
-    else:
-        final_user_transcript += f"\n\n[DEBUG: python received empty code_text]"
         
     return next_question, next_audio, final_user_transcript
