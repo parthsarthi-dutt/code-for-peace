@@ -589,8 +589,6 @@ Rules:
             if not groq_keys:
                 raise ValueError("No GROQ keys available")
 
-            llm = ChatGroq(api_key=groq_keys[0], model="llama-3.1-8b-instant", temperature=0.6)
-
             # Build last-2-turns snippet for the speaker (keeps it focused)
             recent_turns = ""
             for entry in chat_history[-4:]:
@@ -599,12 +597,20 @@ Rules:
                 recent_turns += f"{'Interviewer' if r == 'interviewer' else 'Candidate'}: {t}\n"
             recent_turns += f"Candidate: {user_transcript}\n"
 
-            # ════════════════════════════════════════════════════════════════
-            # NODE 1 — CONTEXT GUARD
-            # Detects off-topic, inappropriate, or evasive responses.
-            # Short-circuits the chain if the candidate goes off-track.
-            # ════════════════════════════════════════════════════════════════
-            guard_prompt = PromptTemplate.from_template(
+            # Key rotation: try each key until one works
+            last_key_error = None
+            for key_idx, api_key in enumerate(groq_keys):
+                try:
+                    print(f"[LangChain] Trying key #{key_idx + 1}/{len(groq_keys)}")
+                    # Fast model for Guard & Speaker (speed matters, simple tasks)
+                    llm_fast = ChatGroq(api_key=api_key, model="llama-3.1-8b-instant", temperature=0.6)
+                    # Smart model for Analyzer & Architect (accuracy matters, complex reasoning)
+                    llm_smart = ChatGroq(api_key=api_key, model="llama-3.3-70b-versatile", temperature=0.4)
+
+                    # ════════════════════════════════════════════════════════
+                    # NODE 1 — CONTEXT GUARD
+                    # ════════════════════════════════════════════════════════
+                    guard_prompt = PromptTemplate.from_template(
 """You are an interview conduct monitor. Your ONLY job is to decide whether the candidate's latest message is relevant to a technical coding interview.
 
 Latest candidate message:
@@ -622,22 +628,20 @@ Classification rules:
 Respond with ONLY one of these two words: ON_TOPIC or OFF_TOPIC
 Do not explain. Do not add any other text.""")
 
-            guard_chain = guard_prompt | llm | StrOutputParser()
-            guard_result = guard_chain.invoke({
-                "user_transcript": user_transcript,
-                "recent_turns": recent_turns,
-            }).strip().upper()
+                    guard_chain = guard_prompt | llm_fast | StrOutputParser()
+                    guard_result = guard_chain.invoke({
+                        "user_transcript": user_transcript,
+                        "recent_turns": recent_turns,
+                    }).strip().upper()
 
-            if "OFF_TOPIC" in guard_result:
-                next_question = "[WARNING: OUT OF CONTEXT] I appreciate the enthusiasm, but let's stay focused on the technical discussion. We have limited time and I want to make sure we cover the important topics. Can you bring your attention back to the problem we were discussing?"
-            else:
+                    if "OFF_TOPIC" in guard_result:
+                        next_question = "[WARNING: OUT OF CONTEXT] I appreciate the enthusiasm, but let's stay focused on the technical discussion. We have limited time and I want to make sure we cover the important topics. Can you bring your attention back to the problem we were discussing?"
+                        break  # Success — exit key rotation loop
 
-                # ════════════════════════════════════════════════════════════
-                # NODE 2 — ANSWER ANALYZER
-                # Deep evaluation of the candidate's technical response.
-                # Produces structured signal for the Question Architect.
-                # ════════════════════════════════════════════════════════════
-                analyzer_prompt = PromptTemplate.from_template(
+                    # ════════════════════════════════════════════════════════
+                    # NODE 2 — ANSWER ANALYZER
+                    # ════════════════════════════════════════════════════════
+                    analyzer_prompt = PromptTemplate.from_template(
 """You are a senior technical interview evaluator at a top tech company. You are evaluating a "{level}" difficulty coding interview.
 
 Full conversation transcript:
@@ -657,31 +661,39 @@ Evaluation criteria for "{level}" level:
 - Medium: Expect optimized approaches. Brute force gets partial credit. They must discuss time/space complexity.
 - Hard: Expect optimal solutions with correct complexity analysis. Test edge cases and scalability.
 
+CRITICAL — REPETITION CHECK:
+Read the entire conversation history above very carefully. Identify:
+- What was the LAST question the interviewer asked?
+- Did the candidate provide a valid answer/solution to that question?
+- If the candidate already explained their approach, said the correct algorithm, or wrote working code → they have SOLVED it. Do NOT let the next node re-ask the same question.
+
 Produce your analysis in EXACTLY this format (fill in each field):
 
 CORRECTNESS: [correct / partially_correct / incorrect / no_substantive_answer]
 DEPTH: [surface_level / moderate / deep]
-WHAT_THEY_GOT_RIGHT: [One specific observation about what was good in their answer, or "Nothing yet" if they haven't given a technical answer]
-WHAT_THEY_MISSED: [One specific gap, mistake, or missing consideration, or "N/A" if their answer was complete]
-CANDIDATE_ASKED_QUESTION: [yes / no — did the candidate ask a clarifying question that needs answering?]
+WHAT_THEY_GOT_RIGHT: [One specific observation about what was good, or "Nothing yet"]
+WHAT_THEY_MISSED: [One specific gap or mistake, or "N/A" if complete]
+CANDIDATE_ASKED_QUESTION: [yes / no]
 CANDIDATE_QUESTION: [Quote their question if yes, otherwise "N/A"]
+HAS_CANDIDATE_SOLVED_CURRENT_QUESTION: [yes / no — did they already provide a correct or near-correct solution to the current question?]
+TOPICS_ALREADY_COVERED: [Comma-separated list of topics/questions already discussed in this interview so far]
 NEXT_ACTION: [Choose exactly one: ask_follow_up_on_same_topic / probe_deeper_on_edge_cases / ask_to_write_code / move_to_new_topic / answer_their_question_then_continue]
 
-Be precise. Do not write prose. Do not add explanations beyond the fields above.""")
+IMPORTANT:
+- If HAS_CANDIDATE_SOLVED_CURRENT_QUESTION is "yes" AND their answer was correct, NEXT_ACTION should be either "ask_to_write_code" (if they haven't coded yet) or "move_to_new_topic" (if they already coded or the question is fully resolved). NEVER choose "ask_follow_up_on_same_topic" if they already solved it.
+- Be precise. Do not write prose. Do not add explanations beyond the fields above.""")
 
-                analyzer_chain = analyzer_prompt | llm | StrOutputParser()
-                analysis = analyzer_chain.invoke({
-                    "level": level,
-                    "conversation": conversation,
-                    "code_text": code_text if code_text.strip() else "(no code written yet)",
-                })
+                    analyzer_chain = analyzer_prompt | llm_smart | StrOutputParser()
+                    analysis = analyzer_chain.invoke({
+                        "level": level,
+                        "conversation": conversation,
+                        "code_text": code_text if code_text.strip() else "(no code written yet)",
+                    })
 
-                # ════════════════════════════════════════════════════════════
-                # NODE 3 — QUESTION ARCHITECT
-                # Designs a precise, specific, solvable technical question.
-                # This is the core quality node — no vague questions allowed.
-                # ════════════════════════════════════════════════════════════
-                architect_prompt = PromptTemplate.from_template(
+                    # ════════════════════════════════════════════════════════
+                    # NODE 3 — QUESTION ARCHITECT
+                    # ════════════════════════════════════════════════════════
+                    architect_prompt = PromptTemplate.from_template(
 """You are the Question Architect for a "{level}" difficulty coding interview lasting {duration} minutes.
 
 ANALYSIS OF CANDIDATE'S LAST ANSWER:
@@ -700,6 +712,15 @@ CONVERSATION SO FAR:
 
 YOUR TASK — Design the next interviewer action based on the analysis:
 
+STEP 1 — CHECK FOR REPETITION:
+Look at TOPICS_ALREADY_COVERED and HAS_CANDIDATE_SOLVED_CURRENT_QUESTION in the analysis.
+- If the candidate has already solved the current question (HAS_CANDIDATE_SOLVED_CURRENT_QUESTION = yes):
+  → Do NOT re-ask the same question or a trivially similar version.
+  → Either ask them to code it (if they only explained verbally) or move to a completely new topic.
+- If you see a topic in TOPICS_ALREADY_COVERED, do NOT pick that topic again.
+
+STEP 2 — DESIGN THE QUESTION based on NEXT_ACTION:
+
 If NEXT_ACTION is "answer_their_question_then_continue":
   → Write a brief, direct answer to the candidate's question (1-2 sentences max).
   → Then write a follow-up question or instruction.
@@ -707,52 +728,54 @@ If NEXT_ACTION is "answer_their_question_then_continue":
 If NEXT_ACTION is "ask_follow_up_on_same_topic":
   → Reference WHAT_THEY_MISSED from the analysis.
   → Ask a targeted follow-up that probes the specific gap.
-  → Example: "What happens if the array contains negative numbers? How does that affect your sliding window?"
+  → Example: "What happens if the array contains duplicate elements? Does your approach still work in O of n time?"
 
 If NEXT_ACTION is "probe_deeper_on_edge_cases":
   → Pick a specific edge case relevant to the current problem.
   → Ask them to handle it or explain their approach for it.
-  → Example: "What if two nodes are at the same depth? How does your LCA algorithm handle that?"
+  → Example: "What if the input array is empty, or has only one element? How does your code handle that?"
 
 If NEXT_ACTION is "ask_to_write_code":
   → Tell them to implement their discussed approach in code.
-  → Specify the function signature if possible (name, parameters, return type).
-  → For {duration}-minute interviews: keep scope small. Ask for the core function only, not boilerplate.
+  → Specify the function signature: function name, parameters with types, return type.
+  → For {duration}-minute interviews: keep scope small. Core function only.
 
 If NEXT_ACTION is "move_to_new_topic":
-  → Pick a DIFFERENT topic from the available topics list that has NOT been discussed yet.
-  → Write a specific, concrete question from that topic — not a vague "tell me about X."
-  → The question MUST have a clear input, a clear expected output, and be solvable.
-  → Example: "Given a string of parentheses, brackets, and braces, write a function that returns true if the string is valid. For instance, the input open-paren, open-bracket, close-bracket, close-paren should return true."
+  → Pick a DIFFERENT topic from the available topics list that is NOT in TOPICS_ALREADY_COVERED.
+  → Write a specific, concrete question from that topic.
+  → The question MUST have: a clear input description, a clear expected output, and at least one concrete example with actual numbers.
+  → Example: "Given an array of integers like 2, 7, 11, 15 and a target sum of 9, find the two numbers that add up to the target and return their indices."
 
-IMPORTANT RULES:
-1. NEVER ask a question that was already asked in the conversation history. Check the history carefully.
-2. NEVER ask vague questions like "tell me about arrays" or "how would you approach this."
-3. Every question MUST be a specific, well-defined problem with clear inputs and outputs.
-4. If asking to code, specify the function name and parameters.
-5. Keep the technical content under 60 words. Be precise, not wordy.
+CRITICAL QUALITY RULES:
+1. NEVER re-ask a question the candidate already answered. Read the conversation history.
+2. NEVER ask vague questions like "tell me about arrays" or "how would you approach this" or "walk me through your thinking."
+3. Every question MUST be a specific, well-defined problem with concrete inputs and outputs.
+4. FACTUAL ACCURACY IS MANDATORY. If you give an example, verify it is correct:
+   - Count string lengths correctly (e.g. "kitten" has 6 letters, "sitting" has 7 — they are NOT the same length).
+   - Verify arithmetic in examples (e.g. 2+7=9, not 2+7=10).
+   - Do not claim two things are equal when they are not.
+5. If asking to code, specify the exact function signature.
+6. Keep the technical content under 60 words. Be precise, not wordy.
 
 OUTPUT FORMAT:
 Write ONLY the technical content (the answer to their question if applicable + the next question/instruction).
 Do not add conversational pleasantries, greetings, or filler.
 Do not use markdown, asterisks, or code blocks.""")
 
-                architect_chain = architect_prompt | llm | StrOutputParser()
-                question_content = architect_chain.invoke({
-                    "level": level,
-                    "duration": duration,
-                    "analysis": analysis,
-                    "turn_logic": turn_logic,
-                    "topic_context": topic_context,
-                    "conversation": conversation,
-                })
+                    architect_chain = architect_prompt | llm_smart | StrOutputParser()
+                    question_content = architect_chain.invoke({
+                        "level": level,
+                        "duration": duration,
+                        "analysis": analysis,
+                        "turn_logic": turn_logic,
+                        "topic_context": topic_context,
+                        "conversation": conversation,
+                    })
 
-                # ════════════════════════════════════════════════════════════
-                # NODE 4 — PERSONA SPEAKER
-                # Converts raw technical content into natural spoken dialogue.
-                # This is what the candidate actually hears via TTS.
-                # ════════════════════════════════════════════════════════════
-                speaker_prompt = PromptTemplate.from_template(
+                    # ════════════════════════════════════════════════════════
+                    # NODE 4 — PERSONA SPEAKER
+                    # ════════════════════════════════════════════════════════
+                    speaker_prompt = PromptTemplate.from_template(
 """You are {persona_name}, a senior engineer at {persona_company}.
 Your interviewing style: {persona_style}.
 Pacing guidance: {persona_pacing}
@@ -792,23 +815,34 @@ CRITICAL SPEECH RULES (this will be read aloud by a TTS engine):
 - Sound like a real human having a technical conversation, not reading from a script.
 - Spell out symbols: say "open paren" not "(", say "n squared" not "n^2".""")
 
-                speaker_chain = speaker_prompt | llm | StrOutputParser()
-                next_question = speaker_chain.invoke({
-                    "persona_name": persona["name"],
-                    "persona_company": persona.get("company_vibe", "a top tech company"),
-                    "persona_style": persona["style"],
-                    "persona_pacing": persona.get("pacing", "Keep a steady pace."),
-                    "duration": duration,
-                    "analysis": analysis,
-                    "question_content": question_content,
-                    "recent_turns": recent_turns,
-                })
+                    speaker_chain = speaker_prompt | llm_fast | StrOutputParser()
+                    next_question = speaker_chain.invoke({
+                        "persona_name": persona["name"],
+                        "persona_company": persona.get("company_vibe", "a top tech company"),
+                        "persona_style": persona["style"],
+                        "persona_pacing": persona.get("pacing", "Keep a steady pace."),
+                        "duration": duration,
+                        "analysis": analysis,
+                        "question_content": question_content,
+                        "recent_turns": recent_turns,
+                    })
+
+                    break  # Success — exit key rotation loop
+
+                except Exception as key_err:
+                    last_key_error = key_err
+                    print(f"[LangChain] Key #{key_idx + 1} failed: {key_err}")
+                    continue  # Try next key
+
+            # If all keys failed
+            if next_question is None:
+                raise Exception(f"All {len(groq_keys)} Groq keys failed. Last error: {last_key_error}")
 
         except Exception as e:
             print(f"LangChain chain error: {e}")
             import traceback
             traceback.print_exc()
-            # Fallback to a simple direct LLM call
+            # Fallback to a simple direct LLM call (uses its own key rotation)
             fallback_prompt = f"""You are {persona['name']}, a senior engineer at {persona.get('company_vibe', 'a top tech company')}.
 You are conducting a {duration}-minute coding interview at "{level}" difficulty.
 

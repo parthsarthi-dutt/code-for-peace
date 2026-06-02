@@ -450,76 +450,102 @@ If the transcript shows that the candidate exited early, did not provide any sub
 
 Format your response using Markdown. Use appropriate headings (e.g. ## Performance Summary, ### Strengths), bold text for emphasis, and bullet points. Keep it professional and constructive.`
 
-	// Call the LLM directly via HTTP to Groq API
-	apiKey := os.Getenv("GROQ_API_KEY")
-	if apiKey == "" {
-		keys := strings.Split(os.Getenv("GROQ_API_KEYS"), ",")
-		if len(keys) > 0 && keys[0] != "" {
-			apiKey = keys[0]
-		}
+	// Gather ALL available Groq API keys for rotation
+	var allKeys []string
+
+	// Try environment variables first
+	if k := os.Getenv("GROQ_API_KEY"); k != "" {
+		allKeys = append(allKeys, strings.Split(k, ",")...)
 	}
-	if apiKey == "" {
-		// Try reading directly from ai-service/.env if running from root
-		if envMap, err := godotenv.Read("ai-service/.env"); err == nil {
+	if k := os.Getenv("GROQ_API_KEYS"); k != "" {
+		allKeys = append(allKeys, strings.Split(k, ",")...)
+	}
+
+	// Try reading from ai-service/.env (relative and absolute paths)
+	envPaths := []string{
+		"ai-service/.env",
+		"/home/ubuntu/online-judge/ai-service/.env",
+	}
+	for _, envPath := range envPaths {
+		if envMap, err := godotenv.Read(envPath); err == nil {
 			if k, ok := envMap["GROQ_API_KEY"]; ok && k != "" {
-				apiKey = k
-			} else if k, ok := envMap["GROQ_API_KEYS"]; ok && k != "" {
-				keys := strings.Split(k, ",")
-				if len(keys) > 0 && keys[0] != "" {
-					apiKey = keys[0]
-				}
+				allKeys = append(allKeys, strings.Split(k, ",")...)
 			}
+			if k, ok := envMap["GROQ_API_KEYS"]; ok && k != "" {
+				allKeys = append(allKeys, strings.Split(k, ",")...)
+			}
+			break
 		}
 	}
 
-	if apiKey == "" {
+	// Deduplicate keys
+	seen := make(map[string]bool)
+	var uniqueKeys []string
+	for _, k := range allKeys {
+		k = strings.TrimSpace(k)
+		if k != "" && !seen[k] {
+			seen[k] = true
+			uniqueKeys = append(uniqueKeys, k)
+		}
+	}
+
+	if len(uniqueKeys) == 0 {
+		slog.Error("No Groq API keys found for feedback generation")
 		return "Unable to generate feedback at this time (Missing configuration)."
 	}
 
-	payload := map[string]interface{}{
-		"model": "llama-3.1-8b-instant",
-		"messages": []map[string]string{
-			{"role": "user", "content": prompt},
-		},
-		"temperature": 0.7,
-	}
-	payloadBytes, _ := json.Marshal(payload)
-	req, err := http.NewRequest("POST", "https://api.groq.com/openai/v1/chat/completions", bytes.NewBuffer(payloadBytes))
-	if err != nil {
-		return "Unable to generate feedback at this time."
-	}
-	req.Header.Set("Authorization", "Bearer "+apiKey)
-	req.Header.Set("Content-Type", "application/json")
+	slog.Info("Attempting feedback generation", slog.Int("keys_available", len(uniqueKeys)))
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		slog.Error("Groq HTTP request failed", slog.String("error", err.Error()))
-		return "Unable to generate feedback at this time."
-	}
-	defer resp.Body.Close()
+	// Try each key until one works
+	for i, apiKey := range uniqueKeys {
+		payload := map[string]interface{}{
+			"model": "llama-3.3-70b-versatile",
+			"messages": []map[string]string{
+				{"role": "user", "content": prompt},
+			},
+			"temperature": 0.5,
+		}
+		payloadBytes, _ := json.Marshal(payload)
+		req, err := http.NewRequest("POST", "https://api.groq.com/openai/v1/chat/completions", bytes.NewBuffer(payloadBytes))
+		if err != nil {
+			continue
+		}
+		req.Header.Set("Authorization", "Bearer "+apiKey)
+		req.Header.Set("Content-Type", "application/json")
 
-	var res map[string]interface{}
-	err = json.NewDecoder(resp.Body).Decode(&res)
-	if err != nil {
-		slog.Error("Failed to decode Groq response", slog.String("error", err.Error()))
-		return "Unable to parse feedback response."
-	}
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			slog.Error("Groq HTTP request failed", slog.Int("key_index", i), slog.String("error", err.Error()))
+			continue
+		}
+		defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
-		slog.Error("Groq API returned error status", slog.Int("status", resp.StatusCode), slog.Any("response", res))
-		return "Unable to generate feedback at this time."
-	}
+		var res map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&res)
+		if err != nil {
+			slog.Error("Failed to decode Groq response", slog.Int("key_index", i), slog.String("error", err.Error()))
+			continue
+		}
 
-	if choices, ok := res["choices"].([]interface{}); ok && len(choices) > 0 {
-		if choice, ok := choices[0].(map[string]interface{}); ok {
-			if message, ok := choice["message"].(map[string]interface{}); ok {
-				if content, ok := message["content"].(string); ok {
-					return content
+		if resp.StatusCode != 200 {
+			slog.Error("Groq API returned error", slog.Int("key_index", i), slog.Int("status", resp.StatusCode), slog.Any("response", res))
+			continue // Try next key
+		}
+
+		if choices, ok := res["choices"].([]interface{}); ok && len(choices) > 0 {
+			if choice, ok := choices[0].(map[string]interface{}); ok {
+				if message, ok := choice["message"].(map[string]interface{}); ok {
+					if content, ok := message["content"].(string); ok {
+						slog.Info("Feedback generated successfully", slog.Int("key_index", i))
+						return content
+					}
 				}
 			}
 		}
+
+		slog.Error("Failed to parse Groq response structure", slog.Int("key_index", i), slog.Any("response", res))
 	}
 
-	return "Unable to parse feedback response."
+	return "Unable to generate feedback after trying all available API keys."
 }
