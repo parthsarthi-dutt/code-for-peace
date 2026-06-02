@@ -421,6 +421,9 @@ def _transcribe_audio(audio_bytes: bytes) -> str:
 def _synthesize_speech(text: str, level: str = "easy") -> bytes:
     """Use Deepgram Aura for Text-to-Speech with dynamic voices based on difficulty level."""
     try:
+        import tempfile
+        import os
+        
         deepgram = DeepgramClient()
         
         # Map levels to specific high-quality Deepgram voices
@@ -436,12 +439,19 @@ def _synthesize_speech(text: str, level: str = "easy") -> bytes:
             model=model_name,
         )
         
-        response = deepgram.speak.rest.v("1").stream_text(
+        with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp_file:
+            tmp_path = tmp_file.name
+
+        response = deepgram.speak.v("1").save(
+            tmp_path,
             {"text": text},
             options
         )
         
-        audio_bytes = response.read()
+        with open(tmp_path, "rb") as f:
+            audio_bytes = f.read()
+            
+        os.remove(tmp_path)
         return audio_bytes
         
     except Exception as e:
