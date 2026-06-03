@@ -232,6 +232,8 @@ pre {
   padding-top: calc(var(--navbar-height) + var(--space-10));
   min-height: 100vh;
   padding-bottom: var(--space-16);
+  overflow-x: hidden;
+  width: 100%;
 }
 
 /* ════════ Scrollbar ════════ */
