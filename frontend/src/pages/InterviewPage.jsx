@@ -93,6 +93,7 @@ export default function InterviewPage() {
 
   // Past interviews
   const [pastInterviews, setPastInterviews] = useState([]);
+  const [startError, setStartError] = useState('');
 
   // Persist state
   useEffect(() => {
@@ -304,6 +305,7 @@ export default function InterviewPage() {
   const handleStartInterview = async () => {
     if (!level || !duration) return;
     setIsStarting(true);
+    setStartError('');
     isEndingRef.current = false;
     
     try {
@@ -332,7 +334,7 @@ export default function InterviewPage() {
     } catch (err) {
       console.error('Failed to start interview:', err);
       const msg = err.response?.data?.error || err.message || 'Failed to start interview';
-      alert(`Debug - Error: ${msg}`);
+      setStartError(msg);
     } finally {
       setIsStarting(false);
     }
@@ -564,6 +566,32 @@ export default function InterviewPage() {
               </div>
             </div>
           </div>
+
+          {/* Error Banner */}
+          {startError && (
+            <div className="error-banner fade-in" style={{
+              background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid rgba(239, 68, 68, 0.2)',
+              color: '#ef4444',
+              padding: '16px 20px',
+              borderRadius: '12px',
+              marginBottom: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              fontSize: '0.95rem',
+              fontWeight: 500,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+              animation: 'fadeIn 0.3s ease-out'
+            }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+              <span>{startError}</span>
+            </div>
+          )}
 
           {/* Start Button */}
           <button
