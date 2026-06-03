@@ -44,7 +44,6 @@ func GetUserProfileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userID := r.Context().Value(auth.UserIDKey).(int)
-	username := r.Context().Value(auth.UsernameKey).(string)
 
 	submissions, err := repository.GetAllSubmissions(strconv.Itoa(userID))
 	if err != nil {
