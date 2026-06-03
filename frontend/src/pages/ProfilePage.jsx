@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { getUserProfile, updateUserProfile } from '../api/client';
@@ -6,9 +6,27 @@ import { useAuth } from '../context/AuthContext';
 import { formatDate } from '../utils/helpers';
 import Heatmap from '../components/Heatmap';
 import VerdictBadge from '../components/VerdictBadge';
-import { X, Copy, Check } from 'lucide-react';
+import { X, Copy, Upload } from 'lucide-react';
 import CodeEditor from '@monaco-editor/react';
+import ReactCrop, { centerCrop, makeAspectCrop } from 'react-image-crop';
+import 'react-image-crop/dist/ReactCrop.css';
 import './ProfilePage.css';
+
+function centerAspectCrop(mediaWidth, mediaHeight, aspect) {
+  return centerCrop(
+    makeAspectCrop(
+      {
+        unit: '%',
+        width: 90,
+      },
+      aspect,
+      mediaWidth,
+      mediaHeight,
+    ),
+    mediaWidth,
+    mediaHeight,
+  );
+}
 
 export default function ProfilePage() {
   const { user, isAuthenticated, loading: authLoading, updateLocalUser } = useAuth();
@@ -21,6 +39,12 @@ export default function ProfilePage() {
   const [editName, setEditName] = useState('');
   const [editAvatar, setEditAvatar] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
+
+  // Image Cropping State
+  const [imgSrc, setImgSrc] = useState('');
+  const imgRef = useRef(null);
+  const [crop, setCrop] = useState();
+  const [completedCrop, setCompletedCrop] = useState(null);
 
   const PRESET_AVATARS = [
     'https://api.dicebear.com/7.x/bottts/svg?seed=Felix',
@@ -36,7 +60,61 @@ export default function ProfilePage() {
   const handleStartEdit = () => {
     setEditName(user?.username || '');
     setEditAvatar(user?.avatar || '');
+    setImgSrc('');
+    setCrop(undefined);
+    setCompletedCrop(null);
     setIsEditing(true);
+  };
+
+  function onSelectFile(e) {
+    if (e.target.files && e.target.files.length > 0) {
+      setCrop(undefined);
+      const reader = new FileReader();
+      reader.addEventListener('load', () => setImgSrc(reader.result?.toString() || ''));
+      reader.readAsDataURL(e.target.files[0]);
+    }
+  }
+
+  function onImageLoad(e) {
+    const { width, height } = e.currentTarget;
+    setCrop(centerAspectCrop(width, height, 1));
+  }
+
+  const getCroppedImg = () => {
+    if (!completedCrop || !imgRef.current) return;
+    
+    const image = imgRef.current;
+    const canvas = document.createElement('canvas');
+    const scaleX = image.naturalWidth / image.width;
+    const scaleY = image.naturalHeight / image.height;
+    
+    canvas.width = completedCrop.width;
+    canvas.height = completedCrop.height;
+    const ctx = canvas.getContext('2d');
+    
+    ctx.drawImage(
+      image,
+      completedCrop.x * scaleX,
+      completedCrop.y * scaleY,
+      completedCrop.width * scaleX,
+      completedCrop.height * scaleY,
+      0,
+      0,
+      completedCrop.width,
+      completedCrop.height,
+    );
+    
+    return canvas.toDataURL('image/jpeg', 0.9);
+  };
+
+  const handleApplyCrop = () => {
+    const base64 = getCroppedImg();
+    if (base64) {
+      setEditAvatar(base64);
+      setImgSrc('');
+      setCrop(undefined);
+      setCompletedCrop(null);
+    }
   };
 
   const handleSaveProfile = async () => {
@@ -61,14 +139,11 @@ export default function ProfilePage() {
   };
 
   useEffect(() => {
-    // Wait for auth to finish loading before checking
     if (authLoading) return;
-
     if (!isAuthenticated) {
       navigate('/');
       return;
     }
-
     async function loadProfile() {
       try {
         const data = await getUserProfile();
@@ -117,7 +192,7 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* ─── Stats Cards ─── */}
+        {/* ─── Stats Grid ─── */}
         <div className="stats-grid" id="stats-grid">
           <div className="stat-card stat-total">
             <div className="stat-number">{profile?.total_solved || 0}</div>
@@ -175,6 +250,7 @@ export default function ProfilePage() {
         )}
       </div>
 
+      {/* ─── Solve Modal ─── */}
       {selectedSolve && createPortal(
         <div className="modal-overlay" onClick={() => setSelectedSolve(null)}>
           <div className="modal-content solve-modal" onClick={e => e.stopPropagation()}>
@@ -235,95 +311,122 @@ export default function ProfilePage() {
         document.body
       )}
 
+      {/* ─── Edit Profile Modal ─── */}
       {isEditing && createPortal(
         <div className="modal-overlay" onClick={() => setIsEditing(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
+          <div className="modal-content edit-modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2>Edit Profile</h2>
               <button className="btn-close" onClick={() => setIsEditing(false)}>
                 <X size={20} />
               </button>
             </div>
-            <div className="modal-body">
+            <div className="modal-body" style={{ maxHeight: 'calc(100vh - 140px)', overflowY: 'auto' }}>
               <div className="edit-profile-form">
-                <div className="avatar-preview-container">
-                  <img
-                    src={editAvatar || 'https://ui-avatars.com/api/?name=User&background=1a1a1a&color=e8e8e8&size=80'}
-                    alt="preview"
-                    className="avatar-preview-img"
-                  />
-                  <div className="avatar-preview-info">
-                    <span className="avatar-preview-title">Avatar Preview</span>
-                    <span className="avatar-preview-desc">Choose a preset below or enter a custom image URL</span>
+                
+                {/* Image Cropping UI */}
+                {imgSrc ? (
+                  <div className="crop-container">
+                    <ReactCrop
+                      crop={crop}
+                      onChange={(_, percentCrop) => setCrop(percentCrop)}
+                      onComplete={(c) => setCompletedCrop(c)}
+                      aspect={1}
+                      circularCrop
+                    >
+                      <img
+                        ref={imgRef}
+                        alt="Crop me"
+                        src={imgSrc}
+                        style={{ maxHeight: '40vh', width: 'auto', display: 'block', margin: '0 auto' }}
+                        onLoad={onImageLoad}
+                      />
+                    </ReactCrop>
+                    <div className="crop-actions">
+                      <button className="btn-secondary" onClick={() => setImgSrc('')}>Cancel</button>
+                      <button className="btn-primary" onClick={handleApplyCrop} disabled={!completedCrop?.width}>Apply Crop</button>
+                    </div>
                   </div>
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="username-input">Username</label>
-                  <input
-                    id="username-input"
-                    type="text"
-                    className="form-input"
-                    value={editName}
-                    onChange={e => setEditName(e.target.value)}
-                    placeholder="Enter username"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="avatar-url-input">Custom Avatar URL</label>
-                  <input
-                    id="avatar-url-input"
-                    type="text"
-                    className="form-input"
-                    value={editAvatar}
-                    onChange={e => setEditAvatar(e.target.value)}
-                    placeholder="Enter custom image URL"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Preset Avatars</label>
-                  <div className="avatar-presets-grid">
-                    {PRESET_AVATARS.map((presetUrl, idx) => (
-                      <div
-                        key={idx}
-                        className={`avatar-preset-item ${editAvatar === presetUrl ? 'active' : ''}`}
-                        onClick={() => setEditAvatar(presetUrl)}
-                      >
-                        <img src={presetUrl} alt={`preset-${idx}`} className="avatar-preset-img" />
+                ) : (
+                  <>
+                    <div className="avatar-preview-container">
+                      <img
+                        src={editAvatar || 'https://ui-avatars.com/api/?name=User&background=1a1a1a&color=e8e8e8&size=80'}
+                        alt="preview"
+                        className="avatar-preview-img"
+                      />
+                      <div className="avatar-preview-info">
+                        <span className="avatar-preview-title">Avatar Preview</span>
+                        <span className="avatar-preview-desc">Upload an image or choose a preset below</span>
+                        <label className="btn-upload">
+                          <Upload size={14} /> Upload Image
+                          <input type="file" accept="image/*" onChange={onSelectFile} style={{ display: 'none' }} />
+                        </label>
                       </div>
-                    ))}
-                  </div>
-                </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="username-input">Username</label>
+                      <input
+                        id="username-input"
+                        type="text"
+                        className="form-input"
+                        value={editName}
+                        onChange={e => setEditName(e.target.value)}
+                        placeholder="Enter username"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="avatar-url-input">Custom Avatar URL</label>
+                      <input
+                        id="avatar-url-input"
+                        type="text"
+                        className="form-input"
+                        value={editAvatar}
+                        onChange={e => setEditAvatar(e.target.value)}
+                        placeholder="Enter custom image URL"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Preset Avatars</label>
+                      <div className="avatar-presets-grid">
+                        {PRESET_AVATARS.map((presetUrl, idx) => (
+                          <div
+                            key={idx}
+                            className={`avatar-preset-item ${editAvatar === presetUrl ? 'active' : ''}`}
+                            onClick={() => setEditAvatar(presetUrl)}
+                          >
+                            <img src={presetUrl} alt={`preset-${idx}`} className="avatar-preset-img" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
-            <div className="modal-footer">
-              <button
-                className="btn-secondary"
-                style={{
-                  marginRight: 12,
-                  padding: '8px 16px',
-                  background: 'transparent',
-                  border: '1px solid var(--border-default)',
-                  color: 'var(--text-secondary)',
-                  borderRadius: 'var(--radius-md)',
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                }}
-                onClick={() => setIsEditing(false)}
-                disabled={savingProfile}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn-primary"
-                onClick={handleSaveProfile}
-                disabled={savingProfile}
-              >
-                {savingProfile ? 'Saving...' : 'Save Changes'}
-              </button>
-            </div>
+            
+            {/* Show save footer only when not cropping */}
+            {!imgSrc && (
+              <div className="modal-footer">
+                <button
+                  className="btn-secondary"
+                  onClick={() => setIsEditing(false)}
+                  disabled={savingProfile}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn-primary"
+                  onClick={handleSaveProfile}
+                  disabled={savingProfile}
+                >
+                  {savingProfile ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            )}
           </div>
         </div>,
         document.body
