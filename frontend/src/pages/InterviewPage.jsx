@@ -308,7 +308,14 @@ export default function InterviewPage() {
     
     try {
       if (document.documentElement.requestFullscreen) {
-        await document.documentElement.requestFullscreen().catch(e => console.error(e));
+        try {
+          const fsPromise = document.documentElement.requestFullscreen();
+          if (fsPromise && fsPromise.catch) {
+            await fsPromise.catch(e => console.error(e));
+          }
+        } catch(e) {
+          console.error('Fullscreen request failed', e);
+        }
       }
       
       const data = await startInterview(level, duration);
