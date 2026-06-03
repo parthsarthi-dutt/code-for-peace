@@ -597,12 +597,37 @@
 }
 
 /* ─── Responsive ─── */
+.mobile-editor-toggle {
+  display: none;
+}
+
 @media (max-width: 900px) {
   .interview-grid {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
   }
   .interview-active {
     min-height: auto !important;
+  }
+  .mobile-hidden {
+    display: none !important;
+  }
+  .mobile-editor-toggle {
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: var(--accent-primary);
+    color: var(--text-inverse);
+    border-radius: var(--radius-full);
+    font-weight: 600;
+    margin-bottom: 12px;
+    justify-content: center;
+    box-shadow: var(--shadow-md);
+    cursor: pointer;
+    border: none;
+    transition: all var(--duration-fast);
   }
 }
 

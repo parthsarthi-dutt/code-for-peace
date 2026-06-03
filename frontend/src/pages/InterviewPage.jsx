@@ -7,7 +7,7 @@ import {
   endInterview,
   getInterviews,
 } from '../api/client';
-import { Mic, Square, Send, Clock, Zap, Brain, Target } from 'lucide-react';
+import { Mic, Square, Send, Clock, Zap, Brain, Target, MessageSquare, Code2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import Editor from '@monaco-editor/react';
 import './InterviewPage.css';
@@ -80,6 +80,7 @@ export default function InterviewPage() {
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const audioRef = useRef(null);
   const [includeCode, setIncludeCode] = useState(true);
+  const [showEditorOnMobile, setShowEditorOnMobile] = useState(false);
 
   // Idle tracking
   const [silentStrikes, setSilentStrikes] = useState(0);
@@ -597,7 +598,14 @@ export default function InterviewPage() {
     return (
       <div className="page-content fade-in" style={{ maxWidth: '100vw', paddingLeft: '20px', paddingRight: '20px' }}>
         <div className="interview-grid">
-          <div className="interview-active" style={{ minHeight: 'calc(100vh - 120px)', display: 'flex', flexDirection: 'column' }}>
+          <button 
+            className="mobile-editor-toggle fade-in"
+            onClick={() => setShowEditorOnMobile(!showEditorOnMobile)}
+          >
+            {showEditorOnMobile ? <><MessageSquare size={18} /> Back to Chat</> : <><Code2 size={18} /> Open Code Editor</>}
+          </button>
+
+          <div className={`interview-active ${showEditorOnMobile ? 'mobile-hidden' : ''}`} style={{ minHeight: 'calc(100vh - 120px)', display: 'flex', flexDirection: 'column' }}>
             {/* Timer Bar */}
             <div className="interview-timer-bar">
               <div>
@@ -692,7 +700,7 @@ export default function InterviewPage() {
               </div>
             </div>
           </div>
-          <div className="interview-editor-container" style={{ display: 'flex', flexDirection: 'column', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-color)', height: 'calc(100vh - 120px)' }}>
+          <div className={`interview-editor-container ${!showEditorOnMobile ? 'mobile-hidden' : ''}`} style={{ display: 'flex', flexDirection: 'column', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-color)', height: 'calc(100vh - 120px)' }}>
             <div style={{ padding: '12px 16px', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)', fontWeight: 600, color: 'var(--text-primary)' }}>
               Interview Code Editor
             </div>
