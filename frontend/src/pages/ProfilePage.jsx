@@ -303,6 +303,8 @@ export default function ProfilePage() {
                       readOnly: true,
                       minimap: { enabled: false },
                       scrollBeyondLastLine: false,
+                      wordWrap: 'on',
+                      fontSize: typeof window !== 'undefined' && window.innerWidth < 600 ? 11 : 13,
                       padding: { top: 16, bottom: 16 }
                     }}
                   />

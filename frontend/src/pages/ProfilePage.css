@@ -261,9 +261,10 @@
 
 .solve-modal {
   max-width: 800px;
-  width: 100%;
+  width: calc(100vw - 32px) !important;
   max-height: 90vh;
   min-width: 0;
+  overflow-x: hidden;
 }
 
 .edit-modal {
