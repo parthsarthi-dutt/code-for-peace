@@ -157,6 +157,17 @@ export default function ProfilePage() {
     loadProfile();
   }, [isAuthenticated, authLoading, navigate]);
 
+  useEffect(() => {
+    if (isEditing || selectedSolve) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isEditing, selectedSolve]);
+
   if (loading) {
     return (
       <div className="page-content">
