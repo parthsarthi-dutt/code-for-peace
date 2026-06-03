@@ -618,8 +618,9 @@
     align-items: center;
     gap: 8px;
     padding: 10px 16px;
-    background: var(--accent-primary);
-    color: var(--text-inverse);
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    border: 1px solid var(--border-default);
     border-radius: var(--radius-full);
     font-weight: 600;
     margin-bottom: 12px;

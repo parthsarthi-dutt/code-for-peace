@@ -1,7 +1,11 @@
 /* ════════ Home Page ════════ */
 
 .home-container {
-  padding: 0 var(--space-8);
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 var(--space-6);
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .home-hero {
@@ -327,6 +331,7 @@
   
   .difficulty-filters {
     justify-content: center;
+    flex-wrap: wrap;
   }
   
   .table-header {
