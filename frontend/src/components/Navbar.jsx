@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getGoogleLoginURL } from '../api/client';
-import { Flame, X, Coins } from 'lucide-react';
+import { Flame, X, Coins, Menu } from 'lucide-react';
 import './Navbar.css';
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
   const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleLogin = () => {
     window.location.href = getGoogleLoginURL();
@@ -27,9 +28,18 @@ export default function Navbar() {
           <span className="brand-text">CodeForPeace</span>
         </Link>
 
-        <div className="navbar-links">
-          <Link to="/" className="nav-link">Problems</Link>
-          <Link to="/interview" state={{ reset: Date.now() }} className="nav-link">AI Interview</Link>
+        <div className="navbar-mobile-toggle" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+          {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+        </div>
+
+        <div className={`navbar-links ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
+          <Link to="/" className="nav-link" onClick={() => setIsMobileMenuOpen(false)}>Problems</Link>
+          <Link to="/interview" state={{ reset: Date.now() }} className="nav-link" onClick={() => setIsMobileMenuOpen(false)}>AI Interview</Link>
+          {isAuthenticated && (
+            <button onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }} className="nav-link btn-logout-mobile">
+              Sign Out
+            </button>
+          )}
         </div>
 
         <div className="navbar-actions">
@@ -55,7 +65,7 @@ export default function Navbar() {
                 />
                 <span className="user-name">{user?.username || 'User'}</span>
               </Link>
-              <button onClick={handleLogout} className="btn-logout" id="logout-btn">
+              <button onClick={handleLogout} className="btn-logout desktop-only" id="logout-btn">
                 Sign Out
               </button>
             </div>

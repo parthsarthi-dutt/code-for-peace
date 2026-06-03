@@ -1273,23 +1273,22 @@
   }
 
   .problem-statement-panel {
-    min-height: 50vh !important;
+    min-height: 60vh !important;
   }
 
   .code-editor-panel-wrapper,
   .code-editor-panel {
-    height: auto !important;
+    height: 120vh !important;
+    min-height: 120vh !important;
   }
 
   .vertical-split {
-    height: auto !important;
+    height: 120vh !important;
     overflow: visible !important;
   }
   
   .vertical-split > [data-panel-id] {
-    flex: none !important;
-    height: 60vh !important;
-    min-height: 60vh !important;
+    /* Let react-resizable-panels use its percentages, but of 120vh */
   }
 
   .resize-handle {
