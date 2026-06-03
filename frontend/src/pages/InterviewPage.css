@@ -8,6 +8,14 @@
   margin: 0 auto;
 }
 
+.interview-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
 .interview-hero {
   text-align: center;
   margin-bottom: 40px;
@@ -589,6 +597,15 @@
 }
 
 /* ─── Responsive ─── */
+@media (max-width: 900px) {
+  .interview-grid {
+    grid-template-columns: 1fr;
+  }
+  .interview-active {
+    min-height: auto !important;
+  }
+}
+
 @media (max-width: 640px) {
   .level-grid { grid-template-columns: 1fr; }
   .duration-grid { grid-template-columns: 1fr; }

@@ -179,6 +179,13 @@ export default function ProblemPage() {
   const [editorialLocked, setEditorialLocked] = useState(false);
   const [editorialLoading, setEditorialLoading] = useState(false);
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const pollRef = useRef(null);
 
   // Load problem + saved code
@@ -541,7 +548,7 @@ export default function ProblemPage() {
   return (
     <>
       <div className="page-content problem-page fade-in">
-        <PanelGroup orientation="horizontal" className="problem-layout">
+        <PanelGroup orientation={isMobile ? "vertical" : "horizontal"} className="problem-layout">
         {/* ─── Left Panel ─── */}
         <Panel defaultSize={45} minSize={25} className="problem-statement-panel">
           <div className="panel-header">
@@ -756,7 +763,7 @@ export default function ProblemPage() {
           </div>
         </Panel>
 
-        <ResizeHandle direction="horizontal" />
+        <ResizeHandle direction={isMobile ? "vertical" : "horizontal"} />
 
         {/* ─── Right Panel: Code Editor ─── */}
         <Panel defaultSize={55} minSize={30} className="code-editor-panel">

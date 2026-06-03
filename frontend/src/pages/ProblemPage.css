@@ -1252,3 +1252,47 @@
 .tags-summary::-webkit-details-marker {
   display: none;
 }
+
+/* ════════ Responsive ════════ */
+@media (max-width: 768px) {
+  .problem-page {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .problem-layout {
+    flex-direction: column !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .problem-layout > [data-panel-group-id],
+  .problem-layout > [data-panel-id] {
+    flex: none !important;
+    height: auto !important;
+  }
+
+  .problem-statement-panel {
+    min-height: 50vh !important;
+  }
+
+  .code-editor-panel-wrapper,
+  .code-editor-panel {
+    height: auto !important;
+  }
+
+  .vertical-split {
+    height: auto !important;
+    overflow: visible !important;
+  }
+  
+  .vertical-split > [data-panel-id] {
+    flex: none !important;
+    height: 60vh !important;
+    min-height: 60vh !important;
+  }
+
+  .resize-handle {
+    display: none !important;
+  }
+}
