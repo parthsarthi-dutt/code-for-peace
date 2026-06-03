@@ -1260,37 +1260,47 @@
     overflow: visible !important;
   }
 
-  .problem-layout {
-    flex-direction: column !important;
+  /* Force block layout, destroy all flex/panel calculations */
+  .problem-layout, 
+  .problem-layout [data-panel-group-id],
+  .problem-layout [data-panel-id],
+  .vertical-split {
+    display: block !important;
     height: auto !important;
-    overflow: visible !important;
-  }
-
-  .problem-layout > [data-panel-group-id],
-  .problem-layout > [data-panel-id] {
+    min-height: 0 !important;
     flex: none !important;
-    height: auto !important;
+    width: 100% !important;
+    position: static !important;
+    overflow: visible !important;
   }
 
   .problem-statement-panel {
-    min-height: 60vh !important;
+    min-height: 50vh !important;
   }
 
+  .panel-body {
+    height: auto !important;
+    overflow: visible !important;
+    flex: none !important;
+  }
+
+  /* Make sure the code editor gets a concrete height so Monaco can render */
   .code-editor-panel-wrapper,
   .code-editor-panel {
-    height: 120vh !important;
-    min-height: 120vh !important;
+    min-height: 80vh !important;
   }
 
-  .vertical-split {
-    height: 120vh !important;
-    overflow: visible !important;
-  }
-  
-  .vertical-split > [data-panel-id] {
-    /* Let react-resizable-panels use its percentages, but of 120vh */
+  .editor-body {
+    height: 60vh !important;
+    flex: none !important;
   }
 
+  .console-panel {
+    min-height: 40vh !important;
+    margin-bottom: 40px !important;
+  }
+
+  /* Hide the drag handles entirely */
   .resize-handle {
     display: none !important;
   }
