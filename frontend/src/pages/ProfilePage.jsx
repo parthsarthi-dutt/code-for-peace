@@ -278,7 +278,7 @@ export default function ProfilePage() {
                 <span className="stat-badge">💾 {selectedSolve.memory_used}KB</span>
                 <span className="stat-badge">📅 {formatDate(selectedSolve.solved_at)}</span>
               </div>
-              <div style={{ position: 'relative', marginTop: 16, border: '1px solid var(--border-default)', borderRadius: 8, overflow: 'hidden' }}>
+              <div style={{ position: 'relative', marginTop: 16, border: '1px solid var(--border-default)', borderRadius: 8, overflow: 'hidden', width: '100%', minWidth: 0 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 16px', background: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-default)' }}>
                   <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Code</span>
                   <button 
@@ -294,7 +294,7 @@ export default function ProfilePage() {
                     <Copy size={14} /> Copy
                   </button>
                 </div>
-                <div style={{ height: '350px' }}>
+                <div style={{ height: '350px', width: '100%', minWidth: 0 }}>
                   <CodeEditor 
                     value={selectedSolve.code || ''} 
                     language="cpp"
