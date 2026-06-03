@@ -16,6 +16,8 @@ export function AuthProvider({ children }) {
       const parsedUser = JSON.parse(storedUser);
       const updatedUser = {
         ...parsedUser,
+        username: profile.username,
+        avatar_url: profile.avatar_url,
         tokens: profile.tokens,
         current_streak: profile.current_streak,
         highest_streak: profile.highest_streak,

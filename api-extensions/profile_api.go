@@ -14,6 +14,7 @@ import (
 type ProfileResponse struct {
 	UserID        int            `json:"user_id"`
 	Username      string         `json:"username"`
+	AvatarURL     string         `json:"avatar_url"`
 	Tokens        int            `json:"tokens"`
 	TotalSolved   int            `json:"total_solved"`
 	EasySolved    int            `json:"easy_solved"`
@@ -102,7 +103,8 @@ func GetUserProfileHandler(w http.ResponseWriter, r *http.Request) {
 
 	profile := ProfileResponse{
 		UserID:        userID,
-		Username:      username,
+		Username:      userModel.Username,
+		AvatarURL:     userModel.AvatarURL,
 		Tokens:        userModel.Tokens,
 		TotalSolved:   len(solvedProblems),
 		EasySolved:    easySolved,
