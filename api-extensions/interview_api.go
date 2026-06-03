@@ -110,6 +110,25 @@ func StartInterviewHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "User not found", http.StatusInternalServerError)
 		return
 	}
+
+	// Rate Limiting (Max 3 interviews per day)
+	if user.Email != "parthsarthidutt@gmail.com" {
+		var todayCount int
+		err = postgres.DB.QueryRow(
+			context.Background(),
+			`SELECT COUNT(*) FROM ai_interviews WHERE user_id = $1 AND DATE(started_at) = CURRENT_DATE`,
+			userID,
+		).Scan(&todayCount)
+		
+		if err == nil && todayCount >= 3 {
+			w.WriteHeader(http.StatusTooManyRequests)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"error": "Daily interview limit reached. You can only start 3 interviews per day.",
+			})
+			return
+		}
+	}
+
 	cost := getTokenCost(payload.Duration)
 	if cost == -1 {
 		http.Error(w, "Invalid duration cost", http.StatusBadRequest)
