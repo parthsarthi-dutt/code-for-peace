@@ -307,15 +307,15 @@ export default function InterviewPage() {
     isEndingRef.current = false;
     
     try {
-      if (document.documentElement.requestFullscreen) {
-        try {
+      try {
+        if (window.innerWidth > 900 && typeof document.documentElement.requestFullscreen === 'function') {
           const fsPromise = document.documentElement.requestFullscreen();
-          if (fsPromise && fsPromise.catch) {
+          if (fsPromise && typeof fsPromise.catch === 'function') {
             await fsPromise.catch(e => console.error(e));
           }
-        } catch(e) {
-          console.error('Fullscreen request failed', e);
         }
+      } catch(e) {
+        console.error('Fullscreen request failed', e);
       }
       
       const data = await startInterview(level, duration);
@@ -331,8 +331,8 @@ export default function InterviewPage() {
       }
     } catch (err) {
       console.error('Failed to start interview:', err);
-      const msg = err.response?.data?.error || 'Failed to start interview';
-      alert(msg);
+      const msg = err.response?.data?.error || err.message || 'Failed to start interview';
+      alert(`Debug - Error: ${msg}`);
     } finally {
       setIsStarting(false);
     }
