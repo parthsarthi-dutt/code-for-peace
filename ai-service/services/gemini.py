@@ -81,6 +81,7 @@ def generate_hint(problem_statement: str, user_code: str, editorial_code: str) -
     2. DO NOT GIVE THEM THE FULL SOLUTION OR CODE. Just point them in the right direction.
     3. Format your response STRICTLY as a bulleted list using the '-' character. 
     4. Provide exactly 2-3 short, actionable bullet points. Do not include conversational filler like "Here is a hint".
+    5. DO NOT use LaTeX formatting (e.g., avoid $O(N)$ or \\(O(N)\\)). Use standard Markdown backticks for code and complexities (e.g., `O(N)`).
 
     Problem Statement:
     {problem_statement}
@@ -107,6 +108,7 @@ def generate_feedback(problem_statement: str, user_code: str, editorial_code: st
        - Time Complexity: (Analyze your TC vs optimal)
        - Space Complexity: (Analyze your SC vs optimal)
        - Suggestion: (One concrete way you can improve cleanliness or performance)
+    6. DO NOT use LaTeX formatting (e.g., avoid $O(N)$ or \\(O(N)\\)). Use standard Markdown backticks for code and complexities (e.g., `O(N)`).
 
     Problem Statement:
     {problem_statement}
