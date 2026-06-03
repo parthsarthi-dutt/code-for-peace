@@ -16,6 +16,19 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import './ProblemPage.css';
 
+const ResponsivePanelGroup = ({ children, isMobile, orientation, className }) => {
+  return isMobile ? <div className={className}>{children}</div> : <PanelGroup orientation={orientation} className={className}>{children}</PanelGroup>;
+};
+
+const ResponsivePanel = ({ children, isMobile, defaultSize, minSize, className }) => {
+  return isMobile ? <div className={className}>{children}</div> : <Panel defaultSize={defaultSize} minSize={minSize} className={className}>{children}</Panel>;
+};
+
+const ResponsiveResizeHandle = ({ isMobile, direction }) => {
+  if (isMobile) return null;
+  return <PanelResizeHandle direction={direction} />;
+};
+
 const CodeBlock = ({ inline, className, children, ...props }) => {
   const match = /language-(\w+)/.exec(className || '');
   const [copied, setCopied] = useState(false);
@@ -548,9 +561,9 @@ export default function ProblemPage() {
   return (
     <>
       <div className="page-content problem-page fade-in">
-        <PanelGroup orientation={isMobile ? "vertical" : "horizontal"} className="problem-layout">
+        <ResponsivePanelGroup isMobile={isMobile} orientation="horizontal" className="problem-layout">
         {/* ─── Left Panel ─── */}
-        <Panel defaultSize={45} minSize={25} className="problem-statement-panel">
+        <ResponsivePanel isMobile={isMobile} defaultSize={45} minSize={25} className="problem-statement-panel">
           <div className="panel-header">
             <div className="panel-tabs">
               <button
@@ -761,14 +774,14 @@ export default function ProblemPage() {
               </div>
             )}
           </div>
-        </Panel>
+        </ResponsivePanel>
 
-        <ResizeHandle direction={isMobile ? "vertical" : "horizontal"} />
+        <ResponsiveResizeHandle isMobile={isMobile} direction="horizontal" />
 
         {/* ─── Right Panel: Code Editor ─── */}
-        <Panel defaultSize={55} minSize={30} className="code-editor-panel">
-          <PanelGroup orientation="vertical" className="vertical-split">
-            <Panel defaultSize={70} minSize={30}>
+        <ResponsivePanel isMobile={isMobile} defaultSize={55} minSize={30} className="code-editor-panel">
+          <ResponsivePanelGroup isMobile={isMobile} orientation="vertical" className="vertical-split">
+            <ResponsivePanel isMobile={isMobile} defaultSize={70} minSize={30}>
               <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
               <div className="editor-header">
                 <div className="editor-left-controls">
@@ -864,12 +877,12 @@ export default function ProblemPage() {
                 />
               </div>
               </div>
-            </Panel>
+            </ResponsivePanel>
 
-            <ResizeHandle direction="vertical" />
+            <ResponsiveResizeHandle isMobile={isMobile} direction="vertical" />
 
             {/* ─── Integrated Console Panel ─── */}
-            <Panel defaultSize={30} minSize={10} className="console-panel">
+            <ResponsivePanel isMobile={isMobile} defaultSize={30} minSize={10} className="console-panel">
               <div className="console-header">
                 <div className="console-tabs">
                   <button 
@@ -946,10 +959,10 @@ export default function ProblemPage() {
                   </div>
                 )}
               </div>
-            </Panel>
-          </PanelGroup>
-        </Panel>
-      </PanelGroup>
+            </ResponsivePanel>
+          </ResponsivePanelGroup>
+        </ResponsivePanel>
+      </ResponsivePanelGroup>
       </div>
 
       {/* ─── Submission Details Modal ─── */}
