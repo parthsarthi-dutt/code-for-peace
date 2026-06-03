@@ -309,6 +309,8 @@ export default function InterviewPage() {
     isEndingRef.current = false;
     
     try {
+      const data = await startInterview(level, duration);
+      
       try {
         if (window.innerWidth > 900 && typeof document.documentElement.requestFullscreen === 'function') {
           const fsPromise = document.documentElement.requestFullscreen();
@@ -319,8 +321,6 @@ export default function InterviewPage() {
       } catch(e) {
         console.error('Fullscreen request failed', e);
       }
-      
-      const data = await startInterview(level, duration);
       setInterviewId(data.interview_id);
       setChatHistory([{ role: 'interviewer', text: data.question_text }]);
       setTimeLeft(duration * 60);
