@@ -16,6 +16,10 @@ func CompileInSandbox(submissionPath string, lang LangConfig) (bool, string) {
 	if err != nil {
 		return false, "Failed to resolve path: " + err.Error()
 	}
+	hostPwd := os.Getenv("HOST_PWD")
+	if hostPwd != "" {
+		absPath = strings.Replace(absPath, "/app", hostPwd, 1)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -65,6 +69,10 @@ func ExecuteInSandbox(submissionPath string, input string, timeLimitSec int64, l
 	absPath, err := filepath.Abs(submissionPath)
 	if err != nil {
 		return "", "Failed to resolve path: " + err.Error(), false
+	}
+	hostPwd := os.Getenv("HOST_PWD")
+	if hostPwd != "" {
+		absPath = strings.Replace(absPath, "/app", hostPwd, 1)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeLimitSec)*time.Second)

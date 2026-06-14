@@ -42,6 +42,10 @@ func CreateAndWriteFile(code string, basePath string, submissionID string, fileE
 
 func DeleteFile(basePath string, submissionID string) {
 	absPath, _ := filepath.Abs(basePath + submissionID)
+	hostPwd := os.Getenv("HOST_PWD")
+	if hostPwd != "" {
+		absPath = strings.Replace(absPath, "/app", hostPwd, 1)
+	}
 
 	// Delete from inside container to handle Linux-owned files on Windows/Linux
 	// rm -rf /sandbox/* deletes any code.cpp, Main.java, code.py, main, Main.class, etc.

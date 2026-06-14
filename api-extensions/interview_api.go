@@ -52,8 +52,13 @@ type InterviewListItem struct {
 // ─── Helpers ─────────────────────────────────────────────────────────
 
 func getInterviewAIClient() (evaluation.EvaluationServiceClient, *grpc.ClientConn, error) {
+	aiURL := os.Getenv("AI_SERVICE_URL")
+	if aiURL == "" {
+		aiURL = "localhost:50051"
+	}
+	
 	conn, err := grpc.Dial(
-		"localhost:50051",
+		aiURL,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultCallOptions(
 			grpc.MaxCallRecvMsgSize(50*1024*1024),
