@@ -1,0 +1,18 @@
+[Unit]
+Description=Online Judge Backend
+After=network.target docker.service
+
+[Service]
+Type=simple
+WorkingDirectory=/home/ubuntu/online-judge
+ExecStart=/home/ubuntu/online-judge/backend-server
+Environment=DATABASE_URL=postgres://postgres:password@localhost:5432/online_judge?sslmode=disable
+Environment=REDIS_URL=localhost:6379
+Environment=AI_SERVICE_URL=localhost:50051
+Environment=PORT=8080
+Restart=always
+RestartSec=3
+User=ubuntu
+
+[Install]
+WantedBy=multi-user.target

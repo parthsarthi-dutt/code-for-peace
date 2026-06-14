@@ -3,7 +3,7 @@ name: Deploy to EC2
 on:
   push:
     branches:
-      - main  # Triggers the workflow when you push to the main branch
+      - main
 
 jobs:
   deploy:
@@ -15,22 +15,30 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          command_timeout: 10m
           script_stop: true
           script: |
-            # Navigate to the project directory
             cd ~/online-judge
-            
-            # Pull the latest changes from GitHub
             git pull origin main
-            
-            # Force rebuild backend without cache to fix corrupted layer caching
-            sudo docker compose build --no-cache backend
-            
-            # Completely tear down existing containers to forcefully release mapped ports
-            sudo docker compose down
-            
-            # Nuke any lingering native zombie processes hogging port 8080 with SIGKILL
-            sudo fuser -k -9 8080/tcp || true
-            
-            # Restart the necessary Docker containers (including db and redis since we brought them down)
-            sudo docker compose up -d backend ai-service db redis
+
+            # 1. Start infrastructure (db, redis, ai-service) — NOT the backend
+            sudo docker compose up -d db redis ai-service
+
+            # 2. Build the Go binary using Docker (no Go needed on host)
+            sudo docker build -t backend-build -f Dockerfile .
+
+            # 3. Extract the compiled binary from the image onto the host
+            cid=$(sudo docker create backend-build)
+            sudo docker cp $cid:/app/backend-server ./backend-server
+            sudo docker rm $cid
+            chmod +x ./backend-server
+
+            # 4. Stop the old Docker-based backend container if it exists
+            sudo docker compose stop backend 2>/dev/null || true
+            sudo docker compose rm -f backend 2>/dev/null || true
+
+            # 5. Install systemd service and restart the backend natively
+            sudo cp online-judge.service /etc/systemd/system/
+            sudo systemctl daemon-reload
+            sudo systemctl enable online-judge
+            sudo systemctl restart online-judge
