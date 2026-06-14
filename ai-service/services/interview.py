@@ -647,36 +647,9 @@ Rules:
                     llm_smart = ChatGroq(api_key=api_key, model="llama-3.3-70b-versatile", temperature=0.4)
 
                     # ════════════════════════════════════════════════════════
-                    # NODE 1 — CONTEXT GUARD
+                    # NODE 1 — REMOVED (Context Guard was too fragile on fast models)
                     # ════════════════════════════════════════════════════════
-                    guard_prompt = PromptTemplate.from_template(
-"""You are an interview conduct monitor. Your ONLY job is to decide whether the candidate's latest message is relevant to a technical coding interview.
 
-Latest candidate message:
-"{user_transcript}"
-
-Conversation so far (last few turns):
-{recent_turns}
-
-Classification rules:
-- If the user talks about code, the interview, asks questions, or even says they don't know the answer -> respond with exactly: ON_TOPIC
-- ONLY return OFF_TOPIC if the candidate is explicitly trying to talk about completely unrelated subjects (like movies or politics) or is being highly abusive.
-- When in doubt, ALWAYS respond with exactly: ON_TOPIC
-
-Respond with ONLY one of these two words: ON_TOPIC or OFF_TOPIC
-Do not explain. Do not add any other text.""")
-
-                    guard_chain = guard_prompt | llm_fast | StrOutputParser()
-                    guard_result = guard_chain.invoke({
-                        "user_transcript": user_transcript,
-                        "recent_turns": recent_turns,
-                    }).strip().upper()
-
-                    if "OFF_TOPIC" in guard_result:
-                        next_question = "[WARNING: OUT OF CONTEXT] I appreciate the enthusiasm, but let's stay focused on the technical discussion. We have limited time and I want to make sure we cover the important topics. Can you bring your attention back to the problem we were discussing?"
-                        break  # Success — exit key rotation loop
-
-                    # ════════════════════════════════════════════════════════
                     # NODE 2 — ANSWER ANALYZER
                     # ════════════════════════════════════════════════════════
                     analyzer_prompt = PromptTemplate.from_template(
@@ -839,11 +812,12 @@ YOUR TASK — Speak naturally as {persona_name}:
    - If their answer was correct: give brief, specific praise referencing something concrete they said. Do NOT say generic things like "great job" or "nice."
    - If partially correct: acknowledge what was right, then naturally transition to the gap.
    - If incorrect: gently point out the issue without being harsh.
-   - If they asked a question: answer it directly and concisely.
+   - If they asked a clarifying question (like "can I code in C++?" or "should I write it out?"): answer it directly and warmly (e.g. "Yes, C++ is totally fine."). Do NOT say "You asked...". Just answer them.
    - If this is the first technical turn: skip the reaction, jump straight to the question.
 
 2. Then DELIVER the technical content naturally:
    - Rephrase the question architect's content into your own voice.
+   - DO NOT attribute the technical question to the candidate. NEVER say "You asked how to detect a cycle..." (I asked that, not the candidate).
    - Make it sound like you are thinking of the question on the spot.
    - Use concrete examples when stating problems (e.g. "say you have an array like 3, 1, 4, 1, 5").
 
