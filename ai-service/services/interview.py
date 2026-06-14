@@ -18,6 +18,7 @@ from urllib.parse import quote_plus
 from langchain_groq import ChatGroq
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
+from pydantic import BaseModel, Field
 
 load_dotenv()
 
@@ -704,28 +705,31 @@ Read the entire conversation history above very carefully. Identify:
 - Did the candidate provide a valid answer/solution to that question?
 - If the candidate already explained their approach, said the correct algorithm, or wrote working code → they have SOLVED it. Do NOT let the next node re-ask the same question.
 
-Produce your analysis in EXACTLY this format (fill in each field):
+Produce your analysis in JSON format according to the provided schema.
 
-CORRECTNESS: [correct / partially_correct / incorrect / no_substantive_answer]
-DEPTH: [surface_level / moderate / deep]
-WHAT_THEY_GOT_RIGHT: [One specific observation about what was good, or "Nothing yet"]
-WHAT_THEY_MISSED: [One specific gap or mistake, or "N/A" if complete]
-CANDIDATE_ASKED_QUESTION: [yes / no]
-CANDIDATE_QUESTION: [Quote their question if yes, otherwise "N/A"]
-HAS_CANDIDATE_SOLVED_CURRENT_QUESTION: [yes / no — did they already provide a correct or near-correct solution to the current question?]
-TOPICS_ALREADY_COVERED: [Comma-separated list of topics/questions already discussed in this interview so far]
-NEXT_ACTION: [Choose exactly one: ask_follow_up_on_same_topic / probe_deeper_on_edge_cases / ask_to_write_code / move_to_new_topic / answer_their_question_then_continue]
+CRITICAL:
+- If HAS_CANDIDATE_SOLVED_CURRENT_QUESTION is true AND their answer was correct, next_action should be either "ask_to_write_code" (if they haven't coded yet) or "move_to_new_topic" (if they already coded). NEVER choose "ask_follow_up_on_same_topic" if they already solved it.""")
 
-IMPORTANT:
-- If HAS_CANDIDATE_SOLVED_CURRENT_QUESTION is "yes" AND their answer was correct, NEXT_ACTION should be either "ask_to_write_code" (if they haven't coded yet) or "move_to_new_topic" (if they already coded or the question is fully resolved). NEVER choose "ask_follow_up_on_same_topic" if they already solved it.
-- Be precise. Do not write prose. Do not add explanations beyond the fields above.""")
+                    class AnalyzerResult(BaseModel):
+                        correctness: str = Field(description="correct / partially_correct / incorrect / no_substantive_answer")
+                        depth: str = Field(description="surface_level / moderate / deep")
+                        what_they_got_right: str = Field(description="One specific observation about what was good, or 'Nothing yet'")
+                        what_they_missed: str = Field(description="One specific gap or mistake, or 'N/A'")
+                        candidate_asked_question: bool = Field(description="true if they asked a question")
+                        candidate_question: str = Field(description="Quote their question, or 'N/A'")
+                        has_candidate_solved_current_question: bool = Field(description="true if they already provided a correct or near-correct solution")
+                        topics_already_covered: list[str] = Field(description="List of topics already discussed")
+                        next_action: str = Field(description="ask_follow_up_on_same_topic / probe_deeper_on_edge_cases / ask_to_write_code / move_to_new_topic / answer_their_question_then_continue")
 
-                    analyzer_chain = analyzer_prompt | llm_smart | StrOutputParser()
-                    analysis = analyzer_chain.invoke({
+                    analyzer_chain = analyzer_prompt | llm_smart.with_structured_output(AnalyzerResult)
+                    analysis_obj = analyzer_chain.invoke({
                         "level": level,
                         "conversation": conversation,
                         "code_text": code_text if code_text.strip() else "(no code written yet)",
                     })
+                    
+                    # Convert the structured object into a formatted string for the Architect Node
+                    analysis = f"CORRECTNESS: {analysis_obj.correctness}\nDEPTH: {analysis_obj.depth}\nWHAT_THEY_GOT_RIGHT: {analysis_obj.what_they_got_right}\nWHAT_THEY_MISSED: {analysis_obj.what_they_missed}\nCANDIDATE_ASKED_QUESTION: {'yes' if analysis_obj.candidate_asked_question else 'no'}\nCANDIDATE_QUESTION: {analysis_obj.candidate_question}\nHAS_CANDIDATE_SOLVED_CURRENT_QUESTION: {'yes' if analysis_obj.has_candidate_solved_current_question else 'no'}\nTOPICS_ALREADY_COVERED: {', '.join(analysis_obj.topics_already_covered)}\nNEXT_ACTION: {analysis_obj.next_action}"
 
                     # ════════════════════════════════════════════════════════
                     # NODE 3 — QUESTION ARCHITECT
