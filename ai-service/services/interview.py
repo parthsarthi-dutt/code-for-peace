@@ -737,7 +737,8 @@ STEP 2 — DESIGN THE QUESTION based on NEXT_ACTION:
 
 If NEXT_ACTION is "answer_their_question_then_continue":
   → Write a brief, direct answer to the candidate's question (1-2 sentences max).
-  → Then write a follow-up question or instruction.
+  → IF the candidate asked a procedural question (e.g. "should I code it?" or "what language?"), just tell them how to proceed. DO NOT repeat or re-state the original problem description!
+  → IF they asked for a hint, give a small hint and ask how they would apply it.
 
 If NEXT_ACTION is "ask_follow_up_on_same_topic":
   → Reference WHAT_THEY_MISSED from the analysis.
