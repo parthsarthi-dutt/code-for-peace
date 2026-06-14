@@ -5,7 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	
+	"strings"
 )
 
 // CreateAndWriteFile writes the user's source code to disk with the correct
