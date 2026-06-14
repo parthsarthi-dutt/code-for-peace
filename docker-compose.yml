@@ -50,7 +50,7 @@ services:
       - REDIS_URL=redis:6379
       - AI_SERVICE_URL=ai-service:50051
       - PORT=8080
-      - HOST_PWD=${PWD}
+      - HOST_PWD=/home/ubuntu/online-judge
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./problems:/app/problems
