@@ -88,6 +88,12 @@ func StartInterviewHandler(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(auth.UserIDKey).(int)
 	userIDStr := strconv.Itoa(userID)
 
+	// Extract IP for tracking
+	ip := r.Header.Get("X-Forwarded-For")
+	if ip == "" {
+		ip = r.RemoteAddr
+	}
+
 	var payload StartInterviewPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
@@ -146,16 +152,24 @@ func StartInterviewHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Deduct tokens
 	if err := repository.UpdateTokens(userIDStr, -cost); err != nil {
+		slog.Error("Failed to deduct tokens", slog.String("user_id", userIDStr), slog.String("error", err.Error()))
 		http.Error(w, "Failed to deduct tokens", http.StatusInternalServerError)
 		return
 	}
+
+	slog.Info("Tokens deducted for interview start",
+		slog.String("user_id", userIDStr),
+		slog.Int("tokens_deducted", cost),
+		slog.String("level", payload.Level),
+		slog.String("ip_address", ip),
+	)
 
 	// Call AI service
 	client, conn, err := getInterviewAIClient()
 	if err != nil {
 		// Refund tokens on failure
 		repository.UpdateTokens(userIDStr, cost)
-		slog.Error("Failed to connect to AI service", slog.String("error", err.Error()))
+		slog.Error("Failed to connect to AI service", slog.String("user_id", userIDStr), slog.String("error", err.Error()))
 		http.Error(w, "AI service unavailable", http.StatusServiceUnavailable)
 		return
 	}
@@ -205,13 +219,24 @@ func StartInterviewHandler(w http.ResponseWriter, r *http.Request) {
 // ProcessInterviewResponseHandler processes user audio and returns next question.
 func ProcessInterviewResponseHandler(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(auth.UserIDKey).(int)
+	userIDStr := strconv.Itoa(userID)
+
+	ip := r.Header.Get("X-Forwarded-For")
+	if ip == "" {
+		ip = r.RemoteAddr
+	}
 
 	var payload InterviewResponsePayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-	slog.Info("Received interview response payload", slog.String("code_excerpt", payload.Code[:min(50, len(payload.Code))]))
+	slog.Info("Received interview response payload", 
+		slog.String("user_id", userIDStr),
+		slog.String("ip_address", ip),
+		slog.Int("interview_id", payload.InterviewID),
+		slog.String("code_excerpt", payload.Code[:min(50, len(payload.Code))]),
+	)
 
 	// Get interview from DB
 	var level string
@@ -301,6 +326,12 @@ func ProcessInterviewResponseHandler(w http.ResponseWriter, r *http.Request) {
 // EndInterviewHandler marks an interview as completed.
 func EndInterviewHandler(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(auth.UserIDKey).(int)
+	userIDStr := strconv.Itoa(userID)
+
+	ip := r.Header.Get("X-Forwarded-For")
+	if ip == "" {
+		ip = r.RemoteAddr
+	}
 
 	var payload struct {
 		InterviewID int `json:"interview_id"`
@@ -340,6 +371,12 @@ func EndInterviewHandler(w http.ResponseWriter, r *http.Request) {
 		context.Background(),
 		`UPDATE ai_interviews SET status = 'completed', feedback = $1 WHERE id = $2`,
 		feedback, payload.InterviewID,
+	)
+
+	slog.Info("Interview completed successfully",
+		slog.String("user_id", userIDStr),
+		slog.String("ip_address", ip),
+		slog.Int("interview_id", payload.InterviewID),
 	)
 
 	w.Header().Set("Content-Type", "application/json")

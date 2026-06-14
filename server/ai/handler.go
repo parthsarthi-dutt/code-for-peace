@@ -37,6 +37,11 @@ func GetHint(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(auth.UserIDKey).(int)
 	userIDStr := strconv.Itoa(userID)
 
+	ip := r.Header.Get("X-Forwarded-For")
+	if ip == "" {
+		ip = r.RemoteAddr
+	}
+
 	var payload HintRequestPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
@@ -112,7 +117,14 @@ func GetHint(w http.ResponseWriter, r *http.Request) {
 	// Deduct 5 tokens
 	err = repository.UpdateTokens(userIDStr, -5)
 	if err != nil {
-		slog.Error("Failed to deduct tokens", slog.String("error", err.Error()))
+		slog.Error("Failed to deduct tokens", slog.String("error", err.Error()), slog.String("user_id", userIDStr))
+	} else {
+		slog.Info("Tokens deducted for AI Hint",
+			slog.String("user_id", userIDStr),
+			slog.Int("tokens_deducted", 5),
+			slog.String("problem_id", payload.ProblemID),
+			slog.String("ip_address", ip),
+		)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -129,6 +141,11 @@ type FeedbackRequestPayload struct {
 func GetFeedback(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(auth.UserIDKey).(int)
 	userIDStr := strconv.Itoa(userID)
+
+	ip := r.Header.Get("X-Forwarded-For")
+	if ip == "" {
+		ip = r.RemoteAddr
+	}
 
 	var payload FeedbackRequestPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
@@ -205,7 +222,14 @@ func GetFeedback(w http.ResponseWriter, r *http.Request) {
 	// Deduct 3 tokens
 	err = repository.UpdateTokens(userIDStr, -3)
 	if err != nil {
-		slog.Error("Failed to deduct tokens", slog.String("error", err.Error()))
+		slog.Error("Failed to deduct tokens", slog.String("error", err.Error()), slog.String("user_id", userIDStr))
+	} else {
+		slog.Info("Tokens deducted for AI Feedback",
+			slog.String("user_id", userIDStr),
+			slog.Int("tokens_deducted", 3),
+			slog.String("problem_id", payload.ProblemID),
+			slog.String("ip_address", ip),
+		)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
