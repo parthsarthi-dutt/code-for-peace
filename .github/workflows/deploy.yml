@@ -22,5 +22,8 @@ jobs:
             # Pull the latest changes from GitHub
             git pull origin main
             
-            # Rebuild and restart the Docker containers (skip piper-tts due to missing image)
-            sudo docker compose up -d --build backend ai-service
+            # Force rebuild backend without cache to fix corrupted layer caching
+            sudo docker compose build --no-cache backend
+            
+            # Restart the Docker containers
+            sudo docker compose up -d backend ai-service
