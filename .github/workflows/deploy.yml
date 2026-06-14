@@ -25,8 +25,11 @@ jobs:
             # Force rebuild backend without cache to fix corrupted layer caching
             sudo docker compose build --no-cache backend
             
-            # Kill any rogue processes that might be hogging port 8080 on the host
-            sudo fuser -k 8080/tcp || true
+            # Completely tear down existing containers to forcefully release mapped ports
+            sudo docker compose down
             
-            # Restart the Docker containers
-            sudo docker compose up -d backend ai-service
+            # Nuke any lingering native zombie processes hogging port 8080 with SIGKILL
+            sudo fuser -k -9 8080/tcp || true
+            
+            # Restart the necessary Docker containers (including db and redis since we brought them down)
+            sudo docker compose up -d backend ai-service db redis
